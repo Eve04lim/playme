@@ -1,9 +1,9 @@
 // src/api/auth.ts
 import type {
-    AuthResponse,
-    LoginRequest,
-    RegisterRequest,
-    User
+  AuthResponse,
+  LoginRequest,
+  RegisterRequest,
+  User
 } from '../types'
 import { apiClient } from './client'
 
@@ -15,22 +15,28 @@ export const authApi = {
     if (import.meta.env.DEV) {
       return new Promise((resolve, reject) => {
         setTimeout(() => {
-          if (credentials.email === 'user@example.com' && credentials.password === 'password') {
+          // より柔軟な認証チェック
+          if (
+            (credentials.email === 'user@example.com' && credentials.password === 'password') ||
+            (credentials.email === 'test@test.com' && credentials.password === 'test123') ||
+            (credentials.email.includes('@') && credentials.password.length >= 6)
+          ) {
             resolve({
               user: {
                 id: '1',
                 email: credentials.email,
-                username: 'testuser',
+                username: credentials.email.split('@')[0],
                 spotifyConnected: false,
                 appleMusicConnected: false,
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString()
               },
               token: 'mock-jwt-token-' + Date.now(),
+              refreshToken: 'mock-refresh-token-' + Date.now(),
               expiresIn: 3600
             })
           } else {
-            reject(new Error('Invalid credentials'))
+            reject(new Error('メールアドレスまたはパスワードが正しくありません'))
           }
         }, 1000)
       })
@@ -48,7 +54,7 @@ export const authApi = {
   register: async (userData: RegisterRequest): Promise<AuthResponse> => {
     // パスワード確認のバリデーション
     if (userData.password !== userData.confirmPassword) {
-      throw new Error('Passwords do not match')
+      throw new Error('パスワードが一致しません')
     }
 
     // 開発環境でのモック実装
@@ -57,7 +63,18 @@ export const authApi = {
         setTimeout(() => {
           // 既存ユーザーのシミュレーション
           if (userData.email === 'existing@example.com') {
-            reject(new Error('Email already exists'))
+            reject(new Error('このメールアドレスは既に使用されています'))
+            return
+          }
+
+          // 簡単なバリデーション
+          if (!userData.email.includes('@')) {
+            reject(new Error('有効なメールアドレスを入力してください'))
+            return
+          }
+
+          if (userData.password.length < 6) {
+            reject(new Error('パスワードは6文字以上で入力してください'))
             return
           }
 
@@ -72,6 +89,7 @@ export const authApi = {
               updatedAt: new Date().toISOString()
             },
             token: 'mock-jwt-token-' + Date.now(),
+            refreshToken: 'mock-refresh-token-' + Date.now(),
             expiresIn: 3600
           })
         }, 1500)
@@ -105,6 +123,17 @@ export const authApi = {
 
   // トークンリフレッシュ
   refreshToken: async (refreshToken: string): Promise<{ token: string; expiresIn: number }> => {
+    if (import.meta.env.DEV) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            token: 'mock-jwt-token-' + Date.now(),
+            expiresIn: 3600
+          })
+        }, 500)
+      })
+    }
+
     const response = await apiClient.post<{ token: string; expiresIn: number }>('/auth/refresh', {
       refreshToken
     })

@@ -15,7 +15,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   return (
     <div 
-      className="min-h-screen"
+      className="min-h-screen w-full"
       style={{ 
         backgroundColor: theme.backgroundColor,
         color: theme.textColor 
@@ -24,10 +24,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       <Header />
       {currentTrack && <MiniPlayer />}
       <main 
-        className={`${currentTrack ? 'pt-32' : 'pt-16'} transition-all duration-300`}
-        style={{ minHeight: 'calc(100vh - 4rem)' }}
+        className={`w-full ${currentTrack ? 'pt-32' : 'pt-16'} transition-all duration-300`}
       >
-        {children}
+        <div className="w-full">
+          {children}
+        </div>
       </main>
     </div>
   )

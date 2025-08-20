@@ -68,6 +68,12 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
     }
   }
 
+  // テストアカウントでのクイックログイン
+  const handleQuickLogin = (email: string, password: string) => {
+    setFormData({ email, password })
+    // フォームの自動送信は避け、ユーザーが明示的にログインボタンを押すよう促す
+  }
+
   return (
     <div className="w-full">
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -168,10 +174,35 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
 
         {/* 開発用のテストアカウント情報 */}
         <div className="bg-yellow-500/20 border border-yellow-500/50 rounded-lg p-4">
-          <p className="text-yellow-300 text-sm font-medium mb-2">🔧 開発用テストアカウント</p>
-          <div className="text-xs text-yellow-200 space-y-1">
-            <p>メール: user@example.com</p>
-            <p>パスワード: password</p>
+          <p className="text-yellow-300 text-sm font-medium mb-3">🔧 開発用テストアカウント</p>
+          <div className="space-y-2">
+            <div className="flex flex-col space-y-1">
+              <button
+                type="button"
+                onClick={() => handleQuickLogin('user@example.com', 'password')}
+                className="text-left p-2 rounded bg-yellow-400/10 hover:bg-yellow-400/20 transition-colors"
+                disabled={loading}
+              >
+                <div className="text-xs text-yellow-200">
+                  <p>📧 user@example.com</p>
+                  <p>🔑 password</p>
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickLogin('test@test.com', 'test123')}
+                className="text-left p-2 rounded bg-yellow-400/10 hover:bg-yellow-400/20 transition-colors"
+                disabled={loading}
+              >
+                <div className="text-xs text-yellow-200">
+                  <p>📧 test@test.com</p>
+                  <p>🔑 test123</p>
+                </div>
+              </button>
+            </div>
+            <p className="text-xs text-yellow-300 mt-2">
+              ※ クリックでフォームに自動入力されます
+            </p>
           </div>
         </div>
 

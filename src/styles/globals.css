@@ -19,12 +19,21 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  width: 100%;
+  height: 100%;
 }
 
 body {
   background-color: #121212;
   color: #ffffff;
   overflow-x: hidden;
+  /* flexレイアウトを削除 */
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+  /* flexレイアウトを削除してブロックレベル要素として扱う */
 }
 
 /* スクロールバーのスタイリング */
