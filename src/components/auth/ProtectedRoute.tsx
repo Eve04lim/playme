@@ -12,7 +12,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 
   useEffect(() => {
     // トークンが存在するが認証状態でない場合、トークンの有効性を確認
-    if (token && !isAuthenticated) {
+    if (token && !isAuthenticated && refreshToken) {
       refreshToken().catch(() => {
         // リフレッシュに失敗した場合はログアウト
         useAuthStore.getState().logout()

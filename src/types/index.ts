@@ -113,6 +113,7 @@ export interface RegisterRequest {
 export interface AuthResponse {
   user: User
   token: string
+  refreshToken?: string
   expiresIn: number
 }
 
@@ -123,6 +124,7 @@ export interface SearchRequest {
   type?: 'track' | 'album' | 'artist' | 'playlist'
   limit?: number
   offset?: number
+  [key: string]: string | number | undefined // インデックスシグネチャを追加
 }
 
 export interface SearchResponse {

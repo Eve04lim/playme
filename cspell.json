@@ -1,0 +1,31 @@
+{
+  "version": "0.2",
+  "language": "en",
+  "words": [
+    "Playme",
+    "testuser",
+    "Synthwave",
+    "Retryable",
+    "retryable",
+    "VITE",
+    "partialize"
+  ],
+  "dictionaries": [
+    "typescript",
+    "node",
+    "javascript",
+    "html",
+    "css",
+    "npm"
+  ],
+  "ignorePaths": [
+    "node_modules/**",
+    "dist/**",
+    "build/**",
+    ".git/**",
+    "*.min.js",
+    "*.min.css"
+  ],
+  "allowCompoundWords": true,
+  "caseSensitive": false
+}
