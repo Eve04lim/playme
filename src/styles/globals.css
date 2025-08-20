@@ -1,0 +1,353 @@
+/* src/styles/globals.css */
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
+
+/* カスタムフォント */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+
+/* ベーススタイル */
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, Segoe UI, Roboto,
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-color: #121212;
+  color: #ffffff;
+  overflow-x: hidden;
+}
+
+/* スクロールバーのスタイリング */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #535353;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #6b6b6b;
+}
+
+/* フォーカススタイル */
+button:focus,
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(29, 185, 84, 0.5);
+}
+
+/* アニメーション */
+.fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.slide-up {
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ホバーエフェクト */
+.hover-scale {
+  transition: transform 0.2s ease;
+}
+
+.hover-scale:hover {
+  transform: scale(1.05);
+}
+
+/* グラデーション背景 */
+.gradient-bg {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+/* 楽曲カード用のエフェクト */
+.music-card {
+  transition: all 0.3s ease;
+  transform-origin: center;
+}
+
+.music-card:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+/* プレイリストカード */
+.playlist-card {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
+.playlist-card:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(29, 185, 84, 0.3);
+  transform: translateY(-2px);
+}
+
+/* ボタンのベーススタイル */
+.btn {
+  @apply px-4 py-2 rounded-lg font-medium transition-all duration-200;
+}
+
+.btn-primary {
+  @apply bg-green-500 text-white hover:bg-green-600 active:bg-green-700;
+}
+
+.btn-secondary {
+  @apply bg-gray-600 text-white hover:bg-gray-700 active:bg-gray-800;
+}
+
+.btn-ghost {
+  @apply bg-transparent text-gray-300 hover:bg-gray-700 border border-gray-600;
+}
+
+.btn-danger {
+  @apply bg-red-500 text-white hover:bg-red-600 active:bg-red-700;
+}
+
+/* 入力フィールド */
+.input {
+  @apply w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400;
+  @apply focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-colors;
+}
+
+.input-error {
+  @apply border-red-500 focus:border-red-500 focus:ring-red-500;
+}
+
+/* モーダル */
+.modal-overlay {
+  @apply fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50;
+  backdrop-filter: blur(4px);
+}
+
+.modal-content {
+  @apply bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full mx-4 max-h-96 overflow-y-auto;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* ローディングスピナー */
+.spinner {
+  @apply inline-block w-4 h-4 border-2 border-gray-300 border-t-green-500 rounded-full;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 波形アニメーション用のプレースホルダー */
+.waveform-bar {
+  background: linear-gradient(to top, #1db954, #1db954aa);
+  animation: waveform 1s ease-in-out infinite alternate;
+}
+
+@keyframes waveform {
+  0% {
+    height: 20%;
+  }
+  100% {
+    height: 100%;
+  }
+}
+
+/* 歌詞の流れるアニメーション */
+.flowing-lyrics {
+  animation: flowRight 20s linear infinite;
+}
+
+@keyframes flowRight {
+  from {
+    transform: translateX(100vw);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+  .music-card:hover {
+    transform: none;
+    box-shadow: none;
+  }
+
+  .playlist-card:hover {
+    transform: none;
+  }
+}
+
+/* ダークモード対応 */
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: #0a0a0a;
+  }
+}
+
+/* フォーカス表示の改善 */
+.focus-visible:focus {
+  outline: 2px solid #1db954;
+  outline-offset: 2px;
+}
+
+/* ツールチップ */
+.tooltip {
+  @apply absolute bg-gray-800 text-white text-xs rounded px-2 py-1 pointer-events-none;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  z-index: 1000;
+}
+
+/* カード共通スタイル */
+.card {
+  @apply bg-gray-800 rounded-lg border border-gray-700 shadow-lg;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+}
+
+.card-hover {
+  @apply transition-all duration-300 hover:shadow-xl;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+}
+
+/* プレイヤー関連 */
+.player-control {
+  @apply w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200;
+  @apply hover:scale-110 active:scale-95;
+}
+
+.progress-bar {
+  @apply w-full h-1 bg-gray-600 rounded-full overflow-hidden;
+}
+
+.progress-fill {
+  @apply h-full bg-green-500 transition-all duration-300;
+}
+
+/* 検索関連 */
+.search-result {
+  @apply p-3 hover:bg-gray-700 cursor-pointer transition-colors duration-200;
+}
+
+.search-result:hover {
+  background: rgba(29, 185, 84, 0.1);
+}
+
+/* テーマカスタマイズ用のCSS変数 */
+:root {
+  --bg-primary: #121212;
+  --bg-secondary: #191414;
+  --color-primary: #1db954;
+  --color-secondary: #535353;
+  --text-primary: #ffffff;
+  --text-secondary: #b3b3b3;
+  --text-muted: #6b6b6b;
+}
+
+/* テーマ変数を使用したスタイル */
+.theme-bg-primary {
+  background-color: var(--bg-primary);
+}
+
+.theme-bg-secondary {
+  background-color: var(--bg-secondary);
+}
+
+.theme-color-primary {
+  color: var(--color-primary);
+}
+
+.theme-text-primary {
+  color: var(--text-primary);
+}
+
+.theme-text-secondary {
+  color: var(--text-secondary);
+}
+
+.theme-border-primary {
+  border-color: var(--color-primary);
+}
+
+/* アクセシビリティ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .flowing-lyrics {
+    animation: none;
+  }
+
+  .waveform-bar {
+    animation: none;
+  }
+}
+
+/* 高コントラストモード */
+@media (prefers-contrast: high) {
+  .btn-primary {
+    @apply border-2 border-white;
+  }
+
+  .card {
+    @apply border-2 border-gray-400;
+  }
+}
+
+/* プリント用スタイル */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
