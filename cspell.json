@@ -8,7 +8,9 @@
     "Retryable",
     "retryable",
     "VITE",
-    "partialize"
+    "partialize",
+    "Avenir",
+    "Segoe"
   ],
   "dictionaries": [
     "typescript",
@@ -16,7 +18,8 @@
     "javascript",
     "html",
     "css",
-    "npm"
+    "npm",
+    "fonts"
   ],
   "ignorePaths": [
     "node_modules/**",
