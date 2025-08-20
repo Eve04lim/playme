@@ -107,13 +107,8 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) =
   const passwordStrength = getPasswordStrength(formData.password)
 
   return (
-    <div className="w-full max-w-md mx-auto">
+    <div className="w-full">
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-white mb-2">新規登録</h2>
-          <p className="text-gray-300">アカウントを作成してPlaymeを始めましょう</p>
-        </div>
-
         {/* グローバルエラー表示 */}
         {error && (
           <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-4">
