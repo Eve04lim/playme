@@ -1,25 +1,88 @@
 // src/pages/HomePage.tsx
 import React, { useEffect } from 'react'
+import { useAuthStore } from '../stores/authStore'
 import { useMusicStore } from '../stores/musicStore'
 import { useMyPageStore } from '../stores/myPageStore'
+import type { Track } from '../types'
 
 export const HomePage: React.FC = () => {
-  const { playlists, loadPlaylists, playlistsLoading } = useMusicStore()
+  const { playlists, loadPlaylists, playlistsLoading, playTrack } = useMusicStore()
   const theme = useMyPageStore(state => state.theme)
+  const user = useAuthStore(state => state.user)
 
   useEffect(() => {
     loadPlaylists()
   }, [loadPlaylists])
 
+  const handleTrackPlay = (track: Track) => {
+    playTrack(track)
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
         <h1 className="text-4xl font-bold mb-2" style={{ color: theme.textColor }}>
-          おかえりなさい
+          おかえりなさい{user?.username ? `, ${user.username}さん` : ''}
         </h1>
-        <p className="text-lg" style={{ color: theme.textColor + '80' }}>
+        <p className="text-lg opacity-80" style={{ color: theme.textColor }}>
           あなたの音楽の世界を探索しましょう
         </p>
+      </div>
+
+      {/* クイックアクション */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <button
+          onClick={() => handleTrackPlay({
+            id: 'demo-1',
+            title: 'デモ楽曲 1',
+            artist: 'テストアーティスト',
+            album: 'デモアルバム',
+            duration: 180000,
+            artworkUrl: 'https://picsum.photos/300/300?random=10'
+          })}
+          className="p-4 rounded-lg border-2 border-dashed transition-all hover:scale-105"
+          style={{ 
+            borderColor: theme.primaryColor + '40',
+            backgroundColor: theme.primaryColor + '10'
+          }}
+        >
+          <div className="text-center">
+            <div className="text-3xl mb-2">🎵</div>
+            <p className="font-medium" style={{ color: theme.textColor }}>
+              デモ楽曲を再生
+            </p>
+          </div>
+        </button>
+
+        <button
+          className="p-4 rounded-lg border-2 border-dashed transition-all hover:scale-105"
+          style={{ 
+            borderColor: theme.primaryColor + '40',
+            backgroundColor: theme.primaryColor + '10'
+          }}
+        >
+          <div className="text-center">
+            <div className="text-3xl mb-2">🔍</div>
+            <p className="font-medium" style={{ color: theme.textColor }}>
+              音楽を検索
+            </p>
+          </div>
+        </button>
+
+        <button
+          className="p-4 rounded-lg border-2 border-dashed transition-all hover:scale-105"
+          style={{ 
+            borderColor: theme.primaryColor + '40',
+            backgroundColor: theme.primaryColor + '10'
+          }}
+        >
+          <div className="text-center">
+            <div className="text-3xl mb-2">➕</div>
+            <p className="font-medium" style={{ color: theme.textColor }}>
+              プレイリスト作成
+            </p>
+          </div>
+        </button>
       </div>
 
       {/* プレイリスト一覧 */}
@@ -72,11 +135,11 @@ export const HomePage: React.FC = () => {
                   {playlist.name}
                 </h3>
                 
-                <p className="text-sm mb-2" style={{ color: theme.textColor + '80' }}>
+                <p className="text-sm mb-2 opacity-80" style={{ color: theme.textColor }}>
                   {playlist.description || 'プレイリストの説明はありません'}
                 </p>
                 
-                <p className="text-xs" style={{ color: theme.textColor + '60' }}>
+                <p className="text-xs opacity-60" style={{ color: theme.textColor }}>
                   {playlist.trackCount} 曲
                 </p>
               </div>
@@ -101,15 +164,62 @@ export const HomePage: React.FC = () => {
         )}
       </section>
 
-      {/* おすすめセクション */}
+      {/* 統計情報 */}
       <section>
         <h2 className="text-2xl font-semibold mb-6" style={{ color: theme.textColor }}>
-          おすすめの音楽
+          アカウント統計
         </h2>
-        <div className="text-center py-12">
-          <p style={{ color: theme.textColor + '60' }}>
-            Spotify または Apple Music に接続して、おすすめの音楽を表示します
-          </p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div 
+            className="p-6 rounded-lg"
+            style={{ backgroundColor: theme.secondaryColor }}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm opacity-60" style={{ color: theme.textColor }}>
+                  プレイリスト数
+                </p>
+                <p className="text-2xl font-bold" style={{ color: theme.primaryColor }}>
+                  {playlists.length}
+                </p>
+              </div>
+              <div className="text-3xl">📚</div>
+            </div>
+          </div>
+
+          <div 
+            className="p-6 rounded-lg"
+            style={{ backgroundColor: theme.secondaryColor }}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm opacity-60" style={{ color: theme.textColor }}>
+                  Spotify
+                </p>
+                <p className="text-sm font-medium" style={{ color: theme.textColor }}>
+                  {user?.spotifyConnected ? '✅ 連携済み' : '❌ 未連携'}
+                </p>
+              </div>
+              <div className="text-3xl">🎵</div>
+            </div>
+          </div>
+
+          <div 
+            className="p-6 rounded-lg"
+            style={{ backgroundColor: theme.secondaryColor }}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm opacity-60" style={{ color: theme.textColor }}>
+                  Apple Music
+                </p>
+                <p className="text-sm font-medium" style={{ color: theme.textColor }}>
+                  {user?.appleMusicConnected ? '✅ 連携済み' : '❌ 未連携'}
+                </p>
+              </div>
+              <div className="text-3xl">🍎</div>
+            </div>
+          </div>
         </div>
       </section>
     </div>
