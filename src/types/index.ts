@@ -79,7 +79,7 @@ export interface MyPageSettings {
 
 // ===== API レスポンス型 =====
 
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean
   data?: T
   error?: string
@@ -127,10 +127,29 @@ export interface SearchRequest {
 
 export interface SearchResponse {
   tracks: Track[]
-  albums?: any[]
-  artists?: any[]
-  playlists?: any[]
+  albums?: Album[]
+  artists?: Artist[]
+  playlists?: Playlist[]
   total: number
+}
+
+// ===== 音楽関連の追加型 =====
+
+export interface Album {
+  id: string
+  name: string
+  artist: string
+  artworkUrl?: string
+  releaseDate?: string
+  trackCount: number
+}
+
+export interface Artist {
+  id: string
+  name: string
+  imageUrl?: string
+  followers?: number
+  genres?: string[]
 }
 
 // ===== プレイヤー関連型 =====
@@ -172,14 +191,14 @@ export interface AddTrackToPlaylistRequest {
 export interface AppError {
   code: string
   message: string
-  details?: any
+  details?: Record<string, unknown>
   timestamp: string
 }
 
 export interface ValidationError {
   field: string
   message: string
-  value?: any
+  value?: unknown
 }
 
 // ===== ユーティリティ型 =====
