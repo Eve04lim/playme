@@ -351,3 +351,148 @@ textarea:focus {
     display: none !important;
   }
 }
+
+/* アニメーション用のCSS */
+/* ログインページの背景アニメーション */
+@keyframes blob {
+  0% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  33% {
+    transform: translate(30px, -50px) scale(1.1);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+  100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+}
+
+.animate-blob {
+  animation: blob 7s infinite;
+}
+
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+  animation-delay: 4s;
+}
+
+/* フォーム要素のアニメーション */
+.form-fade-in {
+  animation: formFadeIn 0.5s ease-out;
+}
+
+@keyframes formFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* バリデーションエラーのアニメーション */
+.error-shake {
+  animation: errorShake 0.5s ease-in-out;
+}
+
+@keyframes errorShake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  75% {
+    transform: translateX(5px);
+  }
+}
+
+/* 成功メッセージのアニメーション */
+.success-bounce {
+  animation: successBounce 0.6s ease-out;
+}
+
+@keyframes successBounce {
+  0% {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* パスワード強度インジケーターのアニメーション */
+.strength-bar {
+  transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+/* ボタンのホバーエフェクト強化 */
+.btn-enhanced {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.btn-enhanced::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  transition: left 0.5s ease;
+}
+
+.btn-enhanced:hover::before {
+  left: 100%;
+}
+
+/* OAuth連携カードのホバーエフェクト */
+.oauth-card {
+  transition: all 0.3s ease;
+}
+
+.oauth-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+/* レスポンシブ対応のアニメーション無効化 */
+@media (prefers-reduced-motion: reduce) {
+  .animate-blob,
+  .form-fade-in,
+  .error-shake,
+  .success-bounce {
+    animation: none;
+  }
+
+  .btn-enhanced::before {
+    display: none;
+  }
+
+  .oauth-card:hover {
+    transform: none;
+  }
+}
