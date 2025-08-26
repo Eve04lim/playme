@@ -10,6 +10,7 @@ import type {
 } from '../types'
 import { apiClient } from './client'
 import { spotifyAPI } from './spotify'
+import { appleMusicAPI } from './applemusic'
 
 // 拡張されたTrack型
 interface EnhancedTrack extends Track {
@@ -24,392 +25,191 @@ interface EnhancedTrack extends Track {
   popularity: number // 0-100
 }
 
-// 大幅に拡充されたモックデータ（50曲以上）
-const enhancedMockTracks: EnhancedTrack[] = [
-  // J-Pop
-  {
-    id: '1',
-    spotifyId: 'spotify-1',
-    title: '夜明けのメロディー',
-    artist: '山田太郎',
-    album: 'Morning Songs',
-    duration: 240000,
-    artworkUrl: 'https://picsum.photos/300/300?random=1',
-    previewUrl: 'https://example.com/preview1.mp3',
-    genre: ['J-Pop', 'Ballad'],
-    mood: ['peaceful', 'uplifting'],
-    bpm: 80,
-    key: 'C Major',
-    energy: 0.4,
-    danceability: 0.3,
-    valence: 0.7,
-    releaseDate: '2024-01-15',
-    popularity: 85
-  },
-  {
-    id: '2',
-    title: '青春の記憶',
-    artist: '佐藤花子',
-    album: 'Youth Chronicles',
-    duration: 220000,
-    artworkUrl: 'https://picsum.photos/300/300?random=2',
-    genre: ['J-Pop', 'Rock'],
-    mood: ['nostalgic', 'energetic'],
-    bpm: 120,
-    energy: 0.8,
-    danceability: 0.6,
-    valence: 0.6,
-    releaseDate: '2024-02-20',
-    popularity: 92
-  },
-  {
-    id: '3',
-    title: '恋する季節',
-    artist: '田中愛美',
-    album: 'Love Songs',
-    duration: 200000,
-    artworkUrl: 'https://picsum.photos/300/300?random=3',
-    genre: ['J-Pop', 'Love Song'],
-    mood: ['romantic', 'sweet'],
-    bpm: 95,
-    energy: 0.5,
-    danceability: 0.4,
-    valence: 0.9,
-    releaseDate: '2024-03-14',
-    popularity: 78
-  },
+// 大規模モックデータ生成ヘルパー
+const generateExtensiveMockTracks = (): EnhancedTrack[] => {
+  const genres = [
+    'J-Pop', 'K-Pop', 'Pop', 'Rock', 'Alternative Rock', 'Hard Rock', 'Punk Rock',
+    'Electronic', 'EDM', 'House', 'Techno', 'Dubstep', 'Synthwave', 'Ambient',
+    'Hip-Hop', 'Rap', 'R&B', 'Soul', 'Funk', 'Neo-Soul',
+    'Jazz', 'Smooth Jazz', 'Bebop', 'Fusion', 'Blues',
+    'Classical', 'Symphony', 'Chamber Music', 'Opera', 'Contemporary Classical',
+    'Country', 'Folk', 'Acoustic', 'Indie', 'Indie Pop', 'Indie Rock',
+    'Reggae', 'Ska', 'Dancehall', 'Latin', 'Salsa', 'Bossa Nova',
+    'Metal', 'Heavy Metal', 'Death Metal', 'Progressive Metal',
+    'World Music', 'Celtic', 'Flamenco', 'African', 'Asian Traditional'
+  ]
 
-  // Electronic/EDM
-  {
-    id: '4',
-    title: 'Electric Pulse',
-    artist: 'Neon Wave',
-    album: 'Synthwave Collection',
-    duration: 195000,
-    artworkUrl: 'https://picsum.photos/300/300?random=4',
-    genre: ['Electronic', 'Synthwave'],
-    mood: ['energetic', 'futuristic'],
-    bpm: 128,
-    energy: 0.9,
-    danceability: 0.8,
-    valence: 0.7,
-    releaseDate: '2024-01-08',
-    popularity: 88
-  },
-  {
-    id: '5',
-    title: 'Digital Dreams',
-    artist: 'Cyber Space',
-    album: 'Virtual Reality',
-    duration: 280000,
-    artworkUrl: 'https://picsum.photos/300/300?random=5',
-    genre: ['Electronic', 'Ambient'],
-    mood: ['dreamy', 'atmospheric'],
-    bpm: 140,
-    energy: 0.7,
-    danceability: 0.9,
-    valence: 0.6,
-    releaseDate: '2024-02-01',
-    popularity: 73
-  },
-  {
-    id: '6',
-    title: 'Bass Drop Revolution',
-    artist: 'DJ Thunder',
-    album: 'Club Anthems',
-    duration: 210000,
-    artworkUrl: 'https://picsum.photos/300/300?random=6',
-    genre: ['Electronic', 'Dubstep'],
-    mood: ['intense', 'powerful'],
-    bpm: 150,
-    energy: 1.0,
-    danceability: 1.0,
-    valence: 0.8,
-    releaseDate: '2024-01-22',
-    popularity: 91
-  },
+  const moods = [
+    'energetic', 'relaxing', 'uplifting', 'melancholic', 'romantic', 'aggressive',
+    'peaceful', 'nostalgic', 'dreamy', 'powerful', 'playful', 'dramatic',
+    'mysterious', 'joyful', 'sad', 'angry', 'hopeful', 'intense', 'calm',
+    'adventurous', 'thoughtful', 'passionate', 'cool', 'warm', 'dark', 'bright'
+  ]
 
-  // Rock
-  {
-    id: '7',
-    title: 'Thunder Road',
-    artist: 'Wild Stallions',
-    album: 'Rock Revolution',
-    duration: 245000,
-    artworkUrl: 'https://picsum.photos/300/300?random=7',
-    genre: ['Rock', 'Hard Rock'],
-    mood: ['aggressive', 'powerful'],
-    bpm: 140,
-    energy: 0.9,
-    danceability: 0.5,
-    valence: 0.7,
-    releaseDate: '2024-01-30',
-    popularity: 86
-  },
-  {
-    id: '8',
-    title: 'Midnight Drive',
-    artist: 'Highway Kings',
-    album: 'Road Trip',
-    duration: 265000,
-    artworkUrl: 'https://picsum.photos/300/300?random=8',
-    genre: ['Rock', 'Alternative'],
-    mood: ['adventurous', 'free'],
-    bpm: 120,
-    energy: 0.7,
-    danceability: 0.4,
-    valence: 0.6,
-    releaseDate: '2024-02-15',
-    popularity: 79
-  },
+  const keys = [
+    'C Major', 'C Minor', 'D Major', 'D Minor', 'E Major', 'E Minor',
+    'F Major', 'F Minor', 'G Major', 'G Minor', 'A Major', 'A Minor',
+    'B Major', 'B Minor', 'F# Major', 'F# Minor', 'Bb Major', 'Bb Minor'
+  ]
 
-  // Jazz
-  {
-    id: '9',
-    title: 'Smooth Jazz Café',
-    artist: 'Blue Note Quartet',
-    album: 'Evening Sessions',
-    duration: 320000,
-    artworkUrl: 'https://picsum.photos/300/300?random=9',
-    genre: ['Jazz', 'Smooth Jazz'],
-    mood: ['relaxing', 'sophisticated'],
-    bpm: 70,
-    energy: 0.3,
-    danceability: 0.2,
-    valence: 0.5,
-    releaseDate: '2024-01-05',
-    popularity: 68
-  },
-  {
-    id: '10',
-    title: 'Saxophone Serenade',
-    artist: 'Miles Davis Jr.',
-    album: 'Jazz Standards',
-    duration: 290000,
-    artworkUrl: 'https://picsum.photos/300/300?random=10',
-    genre: ['Jazz', 'Bebop'],
-    mood: ['melancholic', 'thoughtful'],
-    bpm: 85,
-    energy: 0.4,
-    danceability: 0.3,
-    valence: 0.4,
-    releaseDate: '2024-02-28',
-    popularity: 75
-  },
+  const artistNames = [
+    // Japanese Artists
+    '山田太郎', '佐藤花子', '田中愛美', '鈴木健一', '高橋美咲', '伊藤翔太',
+    '渡辺真理', '中村大輝', '小林優子', '加藤理沙', '吉田拓海', '山本舞',
+    // International Artists
+    'Luna Phoenix', 'Neon Wave', 'Cyber Space', 'DJ Thunder', 'Wild Stallions',
+    'Highway Kings', 'Blue Note Quartet', 'Miles Davis Jr.', 'Modern Orchestra',
+    'Virtuoso Ensemble', 'Echo Chamber', 'Stellar Dreams', 'Urban Legends',
+    'Midnight Riders', 'Crystal Rain', 'Fire Storm', 'Ocean Breeze', 'Sky Walker',
+    'Golden Hours', 'Silver Lining', 'Rainbow Bridge', 'Thunder Cloud',
+    'Diamond Dust', 'Emerald City', 'Ruby Red', 'Sapphire Blue', 'Platinum',
+    // More diverse names
+    'The Crimson Tides', 'Velvet Underground Revival', 'Electric Sheep',
+    'Cosmic Wanderers', 'Digital Nomads', 'Analog Dreams', 'Neon Knights',
+    'Cyber Punks', 'Retro Futurists', 'Time Travelers', 'Space Cadets'
+  ]
 
-  // Classical
-  {
-    id: '11',
-    title: 'Symphony No. 10',
-    artist: 'Modern Orchestra',
-    album: 'Contemporary Classics',
-    duration: 420000,
-    artworkUrl: 'https://picsum.photos/300/300?random=11',
-    genre: ['Classical', 'Symphony'],
-    mood: ['dramatic', 'epic'],
-    bpm: 60,
-    energy: 0.6,
-    danceability: 0.1,
-    valence: 0.5,
-    releaseDate: '2024-01-10',
-    popularity: 62
-  },
-  {
-    id: '12',
-    title: 'Piano Concerto in D',
-    artist: 'Virtuoso Ensemble',
-    album: 'Chamber Music',
-    duration: 380000,
-    artworkUrl: 'https://picsum.photos/300/300?random=12',
-    genre: ['Classical', 'Piano'],
-    mood: ['elegant', 'refined'],
-    bpm: 90,
-    energy: 0.5,
-    danceability: 0.1,
-    valence: 0.6,
-    releaseDate: '2024-03-01',
-    popularity: 71
-  },
+  const albumTitles = [
+    // English Albums
+    'Morning Songs', 'Youth Chronicles', 'Love Songs', 'Synthwave Collection',
+    'Virtual Reality', 'Club Anthems', 'Rock Revolution', 'Road Trip',
+    'Evening Sessions', 'Jazz Standards', 'Contemporary Classics', 'Chamber Music',
+    'New Horizons', 'Digital Dreams', 'Urban Tales', 'Midnight Stories',
+    'Golden Hour', 'Silver Screen', 'Crystal Clear', 'Electric Storm',
+    'Ocean Waves', 'Mountain High', 'Valley Low', 'Desert Wind',
+    'Forest Deep', 'River Flow', 'Fire Dance', 'Ice Cold',
+    'Summer Nights', 'Winter Days', 'Spring Awakening', 'Autumn Leaves',
+    // Japanese Albums
+    '青春の歌', '夢の世界', '星の夜', '海の歌', '山の調べ', '風の旋律',
+    '花の季節', '鳥の歌声', '雨の音', '雷の響き', '雪の静寂', '太陽の輝き'
+  ]
 
-  // Hip-Hop
-  {
-    id: '13',
-    title: 'Street Flow',
-    artist: 'MC Rhythm',
-    album: 'Urban Tales',
-    duration: 185000,
-    artworkUrl: 'https://picsum.photos/300/300?random=13',
-    genre: ['Hip-Hop', 'Rap'],
-    mood: ['confident', 'urban'],
-    bpm: 95,
-    energy: 0.8,
-    danceability: 0.7,
-    valence: 0.7,
-    releaseDate: '2024-02-10',
-    popularity: 89
-  },
-  {
-    id: '14',
-    title: 'Golden Era',
-    artist: 'Old School Crew',
-    album: 'Back to the Roots',
-    duration: 230000,
-    artworkUrl: 'https://picsum.photos/300/300?random=14',
-    genre: ['Hip-Hop', 'Old School'],
-    mood: ['nostalgic', 'groovy'],
-    bpm: 88,
-    energy: 0.6,
-    danceability: 0.8,
-    valence: 0.8,
-    releaseDate: '2024-01-25',
-    popularity: 83
-  },
+  const songTitles = [
+    // Japanese Titles
+    '夜明けのメロディー', '青春の記憶', '恋する季節', '桜散る道', '夏の思い出',
+    '秋風の歌', '冬の星座', '春の足音', '雨上がりの空', '虹の向こう側',
+    '月夜の散歩', '朝露の歌', '夕焼けの詩', '海辺の約束', '山頂の景色',
+    // English Titles
+    'Electric Pulse', 'Digital Dreams', 'Bass Drop Revolution', 'Thunder Road',
+    'Midnight Drive', 'Smooth Jazz Café', 'Saxophone Serenade', 'Symphony No. 10',
+    'Piano Concerto in D', 'Dancing in the Rain', 'Sunset Boulevard',
+    'Neon Lights', 'City Nights', 'Highway to Dreams', 'Starlight Express',
+    'Moonbeam Serenade', 'Ocean Breeze', 'Mountain Echo', 'Forest Whispers',
+    'Desert Mirage', 'Arctic Wind', 'Tropical Paradise', 'Urban Jungle',
+    'Crystal Cave', 'Golden Gate', 'Silver Moon', 'Diamond Stars',
+    'Ruby Heart', 'Emerald Eyes', 'Sapphire Sky', 'Platinum Dreams'
+  ]
 
-  // R&B
-  {
-    id: '15',
-    title: 'Soulful Night',
-    artist: 'Velvet Voice',
-    album: 'Midnight Sessions',
-    duration: 255000,
-    artworkUrl: 'https://picsum.photos/300/300?random=15',
-    genre: ['R&B', 'Soul'],
-    mood: ['sensual', 'smooth'],
-    bpm: 75,
-    energy: 0.5,
-    danceability: 0.6,
-    valence: 0.6,
-    releaseDate: '2024-02-05',
-    popularity: 77
-  },
+  const tracks: EnhancedTrack[] = []
 
-  // World Music
-  {
-    id: '16',
-    title: '桜舞い散る頃',
-    artist: '和楽器バンド',
-    album: 'Japanese Fusion',
-    duration: 270000,
-    artworkUrl: 'https://picsum.photos/300/300?random=16',
-    genre: ['World', 'Japanese Traditional'],
-    mood: ['peaceful', 'cultural'],
-    bpm: 110,
-    energy: 0.6,
-    danceability: 0.4,
-    valence: 0.7,
-    releaseDate: '2024-03-20',
-    popularity: 84
-  },
+  for (let i = 0; i < 250; i++) {
+    const genre = genres[Math.floor(Math.random() * genres.length)]
+    const secondaryGenre = genres[Math.floor(Math.random() * genres.length)]
+    const mood1 = moods[Math.floor(Math.random() * moods.length)]
+    const mood2 = moods[Math.floor(Math.random() * moods.length)]
+    const artist = artistNames[Math.floor(Math.random() * artistNames.length)]
+    const album = albumTitles[Math.floor(Math.random() * albumTitles.length)]
+    const title = songTitles[Math.floor(Math.random() * songTitles.length)]
+    const key = keys[Math.floor(Math.random() * keys.length)]
 
-  // Indie
-  {
-    id: '17',
-    title: 'Coffee Shop Dreams',
-    artist: 'Indie Collective',
-    album: 'Acoustic Sessions',
-    duration: 195000,
-    artworkUrl: 'https://picsum.photos/300/300?random=17',
-    genre: ['Indie', 'Acoustic'],
-    mood: ['cozy', 'intimate'],
-    bpm: 85,
-    energy: 0.3,
-    danceability: 0.2,
-    valence: 0.6,
-    releaseDate: '2024-01-12',
-    popularity: 69
-  },
+    // BPMを ジャンルに基づいて調整
+    let bpm = 120
+    if (genre.includes('Electronic') || genre.includes('EDM') || genre.includes('House') || genre.includes('Techno')) {
+      bpm = 120 + Math.floor(Math.random() * 60) // 120-180
+    } else if (genre.includes('Hip-Hop') || genre.includes('Rap')) {
+      bpm = 80 + Math.floor(Math.random() * 40) // 80-120
+    } else if (genre.includes('Jazz') || genre.includes('Blues')) {
+      bpm = 60 + Math.floor(Math.random() * 40) // 60-100
+    } else if (genre.includes('Rock') || genre.includes('Metal')) {
+      bpm = 100 + Math.floor(Math.random() * 80) // 100-180
+    } else if (genre.includes('Classical')) {
+      bpm = 60 + Math.floor(Math.random() * 60) // 60-120
+    } else {
+      bpm = 80 + Math.floor(Math.random() * 60) // 80-140
+    }
 
-  // Pop
-  {
-    id: '18',
-    title: 'Summer Vibes',
-    artist: 'Pop Stars',
-    album: 'Feel Good Hits',
-    duration: 180000,
-    artworkUrl: 'https://picsum.photos/300/300?random=18',
-    genre: ['Pop', 'Summer'],
-    mood: ['happy', 'upbeat'],
-    bpm: 125,
-    energy: 0.8,
-    danceability: 0.9,
-    valence: 0.9,
-    releaseDate: '2024-03-15',
-    popularity: 95
-  },
+    // エネルギー・ダンス・感情をジャンルに基づいて調整
+    let energy = 0.5
+    let danceability = 0.5
+    let valence = 0.5
 
-  // Ambient
-  {
-    id: '19',
-    title: 'Meditation Space',
-    artist: 'Zen Master',
-    album: 'Mindful Music',
-    duration: 360000,
-    artworkUrl: 'https://picsum.photos/300/300?random=19',
-    genre: ['Ambient', 'Meditation'],
-    mood: ['peaceful', 'calming'],
-    bpm: 60,
-    energy: 0.1,
-    danceability: 0.1,
-    valence: 0.5,
-    releaseDate: '2024-01-01',
-    popularity: 58
-  },
+    if (genre.includes('Electronic') || genre.includes('EDM') || genre.includes('House')) {
+      energy = 0.7 + Math.random() * 0.3
+      danceability = 0.8 + Math.random() * 0.2
+      valence = 0.6 + Math.random() * 0.4
+    } else if (genre.includes('Jazz') || genre.includes('Classical')) {
+      energy = 0.2 + Math.random() * 0.4
+      danceability = 0.1 + Math.random() * 0.3
+      valence = 0.3 + Math.random() * 0.4
+    } else if (genre.includes('Rock') || genre.includes('Metal')) {
+      energy = 0.7 + Math.random() * 0.3
+      danceability = 0.3 + Math.random() * 0.4
+      valence = 0.5 + Math.random() * 0.3
+    } else if (genre.includes('Hip-Hop') || genre.includes('Rap')) {
+      energy = 0.6 + Math.random() * 0.4
+      danceability = 0.7 + Math.random() * 0.3
+      valence = 0.4 + Math.random() * 0.6
+    } else {
+      energy = 0.3 + Math.random() * 0.6
+      danceability = 0.3 + Math.random() * 0.6
+      valence = 0.3 + Math.random() * 0.7
+    }
 
-  // Folk
-  {
-    id: '20',
-    title: 'Mountain Song',
-    artist: 'Folk Wanderer',
-    album: 'Nature Tales',
-    duration: 235000,
-    artworkUrl: 'https://picsum.photos/300/300?random=20',
-    genre: ['Folk', 'Acoustic'],
-    mood: ['nostalgic', 'earthy'],
-    bpm: 90,
-    energy: 0.4,
-    danceability: 0.2,
-    valence: 0.6,
-    releaseDate: '2024-02-18',
-    popularity: 66
-  },
-
-  // 追加の楽曲（21-50）- より多様性を持たせる
-  ...Array.from({ length: 30 }, (_, i) => {
-    const genres = [
-      ['Alternative', 'Grunge'], ['Punk', 'Hardcore'], ['Metal', 'Progressive'],
-      ['Reggae', 'Dancehall'], ['Blues', 'Delta Blues'], ['Country', 'Bluegrass'],
-      ['Techno', 'Deep House'], ['Trance', 'Progressive Trance'], ['Drum & Bass', 'Liquid'],
-      ['Funk', 'Disco'], ['Latin', 'Salsa'], ['Afrobeat', 'World'],
-      ['New Age', 'Chillout'], ['Garage', 'UK Garage'], ['Trap', 'Future Bass']
-    ]
+    // リリース日を過去3年間でランダムに設定
+    const startDate = new Date('2022-01-01')
+    const endDate = new Date('2024-12-31')
+    const randomDate = new Date(startDate.getTime() + Math.random() * (endDate.getTime() - startDate.getTime()))
     
-    const moods = [
-      ['energetic', 'party'], ['melancholic', 'introspective'], ['aggressive', 'rebellious'],
-      ['romantic', 'passionate'], ['mysterious', 'dark'], ['playful', 'fun'],
-      ['epic', 'cinematic'], ['groovy', 'funky'], ['ethereal', 'transcendent']
-    ]
+    // 人気度をジャンルと年代に基づいて調整
+    let popularity = 50 + Math.floor(Math.random() * 50)
+    if (randomDate.getFullYear() === 2024) {
+      popularity += 10 // 新しい楽曲はより人気
+    }
+    if (genre.includes('Pop') || genre.includes('J-Pop') || genre.includes('K-Pop')) {
+      popularity += 15 // ポップスは人気が高い
+    }
 
-    const genreIndex = i % genres.length
-    const moodIndex = i % moods.length
+    // 長さをジャンルに基づいて調整
+    let duration = 180000 // 3分デフォルト
+    if (genre.includes('Classical')) {
+      duration = 300000 + Math.random() * 300000 // 5-10分
+    } else if (genre.includes('Electronic') || genre.includes('EDM')) {
+      duration = 240000 + Math.random() * 120000 // 4-6分
+    } else {
+      duration = 150000 + Math.random() * 150000 // 2.5-5分
+    }
 
-    return {
-      id: `${21 + i}`,
-      title: `Track ${21 + i} - ${genres[genreIndex][0]} Style`,
-      artist: `Artist ${String.fromCharCode(65 + (i % 26))}`,
-      album: `Album ${Math.floor(i / 5) + 1}`,
-      duration: 180000 + Math.random() * 180000,
-      artworkUrl: `https://picsum.photos/300/300?random=${21 + i}`,
-      genre: genres[genreIndex],
-      mood: moods[moodIndex],
-      bpm: 60 + Math.floor(Math.random() * 120),
-      energy: Math.random(),
-      danceability: Math.random(),
-      valence: Math.random(),
-      releaseDate: `2024-${String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')}`,
-      popularity: Math.floor(Math.random() * 100)
-    } as EnhancedTrack
-  })
-]
+    const track: EnhancedTrack = {
+      id: `mock_${i + 1}`,
+      spotifyId: `spotify_mock_${i + 1}`,
+      appleMusicId: `apple_mock_${i + 1}`,
+      title: `${title} ${i > songTitles.length ? `(${Math.floor(i / songTitles.length) + 1})` : ''}`,
+      artist,
+      album,
+      duration: Math.floor(duration),
+      artworkUrl: `https://picsum.photos/300/300?random=${i + 100}&blur=1`,
+      previewUrl: `https://example.com/preview${i + 1}.mp3`,
+      externalUrl: `https://music.example.com/track/${i + 1}`,
+      genre: genre === secondaryGenre ? [genre] : [genre, secondaryGenre],
+      mood: mood1 === mood2 ? [mood1] : [mood1, mood2],
+      bpm,
+      key,
+      energy: Math.round(energy * 100) / 100,
+      danceability: Math.round(danceability * 100) / 100,
+      valence: Math.round(valence * 100) / 100,
+      releaseDate: randomDate.toISOString().split('T')[0],
+      popularity: Math.min(100, Math.max(0, popularity)),
+      createdAt: new Date().toISOString()
+    }
+
+    tracks.push(track)
+  }
+
+  return tracks.sort((a, b) => b.popularity - a.popularity) // 人気順でソート
+}
+
+// 大幅に拡充されたモックデータ（250曲）
+const enhancedMockTracks: EnhancedTrack[] = generateExtensiveMockTracks()
 
 // プレイリストモックデータも拡充
 const enhancedMockPlaylists: Playlist[] = [
@@ -1008,6 +808,698 @@ export const musicApi = {
     if (!response.success) {
       throw new Error(response.error || 'Failed to remove track from playlist')
     }
+  },
+
+  // === 統合APIレイヤー ===
+  
+  // サービス設定・優先度管理
+  serviceConfig: {
+    spotify: { enabled: true, priority: 1, weight: 0.6 },
+    appleMusic: { enabled: true, priority: 2, weight: 0.4 }
+  },
+
+  // キャッシュシステム（メモリベース）
+  cache: new Map<string, { data: unknown; timestamp: number; ttl: number }>(),
+
+  // レート制限管理
+  rateLimitState: {
+    spotify: { requests: 0, resetTime: Date.now(), limit: 100 }, // 100 requests per hour
+    appleMusic: { requests: 0, resetTime: Date.now(), limit: 1000 }, // 1000 requests per hour
+    lastRequestTimes: new Map<string, number>(),
+    minRequestInterval: 100 // minimum 100ms between requests
+  },
+
+  // エラー統計・ログ
+  errorStats: {
+    totalErrors: 0,
+    errorsByService: { spotify: 0, appleMusic: 0, unified: 0 },
+    errorsByType: { network: 0, auth: 0, rateLimit: 0, timeout: 0, unknown: 0 },
+    lastErrors: [] as Array<{ timestamp: number; service: string; type: string; message: string }>
+  },
+
+  // キャッシュヘルパー
+  getFromCache: function<T>(key: string): T | null {
+    const cached = this.cache.get(key)
+    if (!cached) return null
+    
+    if (Date.now() > cached.timestamp + cached.ttl) {
+      this.cache.delete(key)
+      return null
+    }
+    
+    return cached.data as T
+  },
+
+  setCache: function<T>(key: string, data: T, ttlMs: number = 300000) { // 5分デフォルト
+    this.cache.set(key, {
+      data,
+      timestamp: Date.now(),
+      ttl: ttlMs
+    })
+  },
+
+  clearCache: function() {
+    this.cache.clear()
+  },
+
+  // レート制限チェック・管理
+  checkRateLimit: function(service: 'spotify' | 'appleMusic'): { allowed: boolean; waitTime?: number } {
+    const now = Date.now()
+    const serviceLimit = this.rateLimitState[service]
+    
+    // 1時間ごとにリクエスト数をリセット
+    if (now > serviceLimit.resetTime + 3600000) { // 1 hour
+      serviceLimit.requests = 0
+      serviceLimit.resetTime = now
+    }
+    
+    // リクエスト制限チェック
+    if (serviceLimit.requests >= serviceLimit.limit) {
+      const waitTime = serviceLimit.resetTime + 3600000 - now
+      return { allowed: false, waitTime }
+    }
+    
+    // 最小間隔チェック
+    const lastRequestKey = `${service}_last_request`
+    const lastRequestTime = this.rateLimitState.lastRequestTimes.get(lastRequestKey) || 0
+    const timeSinceLastRequest = now - lastRequestTime
+    
+    if (timeSinceLastRequest < this.rateLimitState.minRequestInterval) {
+      return { 
+        allowed: false, 
+        waitTime: this.rateLimitState.minRequestInterval - timeSinceLastRequest 
+      }
+    }
+    
+    return { allowed: true }
+  },
+
+  recordRequest: function(service: 'spotify' | 'appleMusic') {
+    const now = Date.now()
+    this.rateLimitState[service].requests++
+    this.rateLimitState.lastRequestTimes.set(`${service}_last_request`, now)
+  },
+
+  // エラーハンドリング・ログ
+  logError: function(service: string, error: unknown, context?: string) {
+    const now = Date.now()
+    let errorType = 'unknown'
+    let errorMessage = 'Unknown error'
+    
+    if (error instanceof Error) {
+      errorMessage = error.message
+      
+      // エラータイプの判定
+      if (errorMessage.includes('rate limit') || errorMessage.includes('429')) {
+        errorType = 'rateLimit'
+      } else if (errorMessage.includes('401') || errorMessage.includes('403') || errorMessage.includes('unauthorized')) {
+        errorType = 'auth'
+      } else if (errorMessage.includes('timeout') || errorMessage.includes('TIMEOUT')) {
+        errorType = 'timeout'
+      } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+        errorType = 'network'
+      }
+    }
+    
+    // 統計更新
+    this.errorStats.totalErrors++
+    this.errorStats.errorsByService[service as keyof typeof this.errorStats.errorsByService]++
+    this.errorStats.errorsByType[errorType as keyof typeof this.errorStats.errorsByType]++
+    
+    // 最新エラーログ（最大50件）
+    this.errorStats.lastErrors.unshift({
+      timestamp: now,
+      service,
+      type: errorType,
+      message: context ? `${context}: ${errorMessage}` : errorMessage
+    })
+    
+    if (this.errorStats.lastErrors.length > 50) {
+      this.errorStats.lastErrors.pop()
+    }
+    
+    // コンソールログ（開発環境のみ詳細出力）
+    if (import.meta.env.DEV) {
+      console.error(`[${service}] ${errorType.toUpperCase()}: ${errorMessage}`, {
+        context,
+        timestamp: new Date(now).toISOString(),
+        error
+      })
+    } else {
+      console.warn(`API Error [${service}]: ${errorMessage}`)
+    }
+  },
+
+  // リトライロジック（指数バックオフ）
+  retryWithBackoff: async function<T>(
+    operation: () => Promise<T>,
+    service: string,
+    options: {
+      maxRetries?: number
+      baseDelay?: number
+      maxDelay?: number
+      retryCondition?: (error: unknown) => boolean
+    } = {}
+  ): Promise<T> {
+    const {
+      maxRetries = 3,
+      baseDelay = 1000,
+      maxDelay = 10000,
+      retryCondition = (error) => {
+        if (error instanceof Error) {
+          // 一時的なエラーの場合のみリトライ
+          return error.message.includes('429') || 
+                 error.message.includes('timeout') ||
+                 error.message.includes('network') ||
+                 error.message.includes('500') ||
+                 error.message.includes('503')
+        }
+        return false
+      }
+    } = options
+
+    let lastError: unknown
+    
+    for (let attempt = 0; attempt < maxRetries + 1; attempt++) {
+      try {
+        if (attempt > 0) {
+          const delay = Math.min(baseDelay * Math.pow(2, attempt - 1), maxDelay)
+          await new Promise(resolve => setTimeout(resolve, delay))
+        }
+        
+        return await operation()
+      } catch (error) {
+        lastError = error
+        
+        // 最後の試行の場合、またはリトライ条件を満たさない場合は諦める
+        if (attempt === maxRetries || !retryCondition(error)) {
+          this.logError(service, error, `Final attempt failed (${attempt + 1}/${maxRetries + 1})`)
+          break
+        }
+        
+        this.logError(service, error, `Retry attempt ${attempt + 1}/${maxRetries + 1}`)
+      }
+    }
+    
+    throw lastError
+  },
+
+  // 回路ブレーカーパターン（サービス障害時の自動フォールバック）
+  circuitBreakerState: {
+    spotify: { failures: 0, lastFailTime: 0, state: 'closed' }, // closed, open, half-open
+    appleMusic: { failures: 0, lastFailTime: 0, state: 'closed' }
+  },
+
+  checkCircuitBreaker: function(service: 'spotify' | 'appleMusic'): boolean {
+    const breaker = this.circuitBreakerState[service]
+    const now = Date.now()
+    const recoveryTimeout = 60000 // 1分後に復旧試行
+    
+    switch (breaker.state) {
+      case 'closed':
+        return true
+        
+      case 'open':
+        if (now - breaker.lastFailTime > recoveryTimeout) {
+          breaker.state = 'half-open'
+          return true
+        }
+        return false
+        
+      case 'half-open':
+        return true
+        
+      default:
+        return true
+    }
+  },
+
+  recordCircuitBreakerResult: function(service: 'spotify' | 'appleMusic', success: boolean) {
+    const breaker = this.circuitBreakerState[service]
+    
+    if (success) {
+      breaker.failures = 0
+      breaker.state = 'closed'
+    } else {
+      breaker.failures++
+      breaker.lastFailTime = Date.now()
+      
+      if (breaker.failures >= 5) {
+        breaker.state = 'open'
+        this.logError(service, new Error('Circuit breaker opened due to repeated failures'), 'Circuit Breaker')
+      }
+    }
+  },
+
+  // エラー統計取得
+  getErrorStats: function() {
+    return {
+      ...this.errorStats,
+      rateLimitStats: {
+        spotify: {
+          requests: this.rateLimitState.spotify.requests,
+          limit: this.rateLimitState.spotify.limit,
+          resetTime: this.rateLimitState.spotify.resetTime
+        },
+        appleMusic: {
+          requests: this.rateLimitState.appleMusic.requests,
+          limit: this.rateLimitState.appleMusic.limit,
+          resetTime: this.rateLimitState.appleMusic.resetTime
+        }
+      },
+      circuitBreakerStats: this.circuitBreakerState
+    }
+  },
+
+  // エラー統計リセット
+  resetErrorStats: function() {
+    this.errorStats.totalErrors = 0
+    this.errorStats.errorsByService = { spotify: 0, appleMusic: 0, unified: 0 }
+    this.errorStats.errorsByType = { network: 0, auth: 0, rateLimit: 0, timeout: 0, unknown: 0 }
+    this.errorStats.lastErrors = []
+  },
+
+  // 複数サービス統合検索
+  multiServiceSearch: async function(params: {
+    query: string
+    limit?: number
+    services?: ('spotify' | 'appleMusic')[]
+    mergeResults?: boolean
+  }): Promise<{ 
+    tracks: Track[]
+    sources: { spotify?: Track[]; appleMusic?: Track[] }
+    total: number
+    fromCache?: boolean
+  }> {
+    const { query, limit = 20, services = ['spotify', 'appleMusic'], mergeResults = true } = params
+    const cacheKey = `multi_search_${query}_${limit}_${services.join(',')}_${mergeResults}`
+    
+    // キャッシュチェック
+    const cached = this.getFromCache<{ tracks: Track[]; sources: Record<string, Track[]>; total: number }>(cacheKey)
+    if (cached) {
+      return { ...cached, fromCache: true }
+    }
+
+    const sources: { spotify?: Track[]; appleMusic?: Track[] } = {}
+    const searchPromises: Promise<void>[] = []
+
+    // Spotify検索（レート制限・エラーハンドリング付き）
+    if (services.includes('spotify') && this.serviceConfig.spotify.enabled) {
+      const spotifyPromise = (async () => {
+        // 回路ブレーカーチェック
+        if (!this.checkCircuitBreaker('spotify')) {
+          this.logError('spotify', new Error('Circuit breaker is open'), 'multiServiceSearch')
+          sources.spotify = []
+          return
+        }
+
+        try {
+          if (import.meta.env.DEV) {
+            // 開発環境：モック実装
+            const mockSpotifyTracks = enhancedMockTracks
+              .filter(track => 
+                track.title.toLowerCase().includes(query.toLowerCase()) ||
+                track.artist.toLowerCase().includes(query.toLowerCase())
+              )
+              .slice(0, Math.ceil(limit * this.serviceConfig.spotify.weight))
+              .map(track => ({ ...track, source: 'spotify' as const }))
+            sources.spotify = mockSpotifyTracks
+            this.recordCircuitBreakerResult('spotify', true)
+          } else {
+            // 本番環境：レート制限チェック
+            const rateLimitCheck = this.checkRateLimit('spotify')
+            if (!rateLimitCheck.allowed) {
+              throw new Error(`Rate limit exceeded. Wait ${rateLimitCheck.waitTime}ms`)
+            }
+
+            // リトライ付きでSpotify API実行
+            const spotifyResult = await this.retryWithBackoff(
+              async () => {
+                this.recordRequest('spotify')
+                return await spotifyAPI.search({
+                  query,
+                  type: 'track',
+                  limit: Math.ceil(limit * this.serviceConfig.spotify.weight)
+                })
+              },
+              'spotify',
+              { maxRetries: 2, baseDelay: 500 }
+            )
+            
+            sources.spotify = spotifyResult.tracks?.items.map(item => ({
+              id: `spotify_${item.id}`,
+              spotifyId: item.id,
+              title: item.name,
+              artist: item.artists.map(a => a.name).join(', '),
+              album: item.album.name,
+              duration: item.duration_ms,
+              artworkUrl: item.album.images[0]?.url,
+              previewUrl: item.preview_url || undefined,
+              externalUrl: item.external_urls.spotify,
+              createdAt: new Date().toISOString(),
+              source: 'spotify' as const
+            } as Track & { source: string })) || []
+            
+            this.recordCircuitBreakerResult('spotify', true)
+          }
+        } catch (error) {
+          this.logError('spotify', error, 'multiServiceSearch')
+          this.recordCircuitBreakerResult('spotify', false)
+          sources.spotify = []
+        }
+      })()
+      searchPromises.push(spotifyPromise)
+    }
+
+    // Apple Music検索（レート制限・エラーハンドリング付き）
+    if (services.includes('appleMusic') && this.serviceConfig.appleMusic.enabled) {
+      const appleMusicPromise = (async () => {
+        // 回路ブレーカーチェック
+        if (!this.checkCircuitBreaker('appleMusic')) {
+          this.logError('appleMusic', new Error('Circuit breaker is open'), 'multiServiceSearch')
+          sources.appleMusic = []
+          return
+        }
+
+        try {
+          // レート制限チェック（開発環境以外）
+          if (!import.meta.env.DEV) {
+            const rateLimitCheck = this.checkRateLimit('appleMusic')
+            if (!rateLimitCheck.allowed) {
+              throw new Error(`Rate limit exceeded. Wait ${rateLimitCheck.waitTime}ms`)
+            }
+          }
+
+          // リトライ付きでApple Music API実行
+          const appleMusicTracks = await this.retryWithBackoff(
+            async () => {
+              if (!import.meta.env.DEV) {
+                this.recordRequest('appleMusic')
+              }
+              return await appleMusicAPI.searchUnified(
+                query, 
+                Math.ceil(limit * this.serviceConfig.appleMusic.weight)
+              )
+            },
+            'appleMusic',
+            { maxRetries: 2, baseDelay: 1000 }
+          )
+          
+          sources.appleMusic = appleMusicTracks.map(track => ({
+            ...track,
+            id: `apple_${track.id}`,
+            source: 'appleMusic' as const
+          } as Track & { source: string }))
+          
+          this.recordCircuitBreakerResult('appleMusic', true)
+        } catch (error) {
+          this.logError('appleMusic', error, 'multiServiceSearch')
+          this.recordCircuitBreakerResult('appleMusic', false)
+          sources.appleMusic = []
+        }
+      })()
+      searchPromises.push(appleMusicPromise)
+    }
+
+    // 全検索完了まで待機
+    await Promise.all(searchPromises)
+
+    let finalTracks: Track[] = []
+    
+    if (mergeResults) {
+      // 結果マージと重複除去
+      const allTracks = [
+        ...(sources.spotify || []),
+        ...(sources.appleMusic || [])
+      ] as (Track & { source: string })[]
+
+      // 類似楽曲の重複除去（タイトルとアーティストの類似性で判定）
+      const uniqueTracks = new Map<string, Track & { source: string }>()
+      
+      for (const track of allTracks) {
+        const normalizedKey = `${track.title.toLowerCase().trim()}_${track.artist.toLowerCase().trim()}`
+        
+        if (!uniqueTracks.has(normalizedKey)) {
+          uniqueTracks.set(normalizedKey, track)
+        } else {
+          // 既存の楽曲と比較して、より高い優先度のサービスの楽曲を保持
+          const existingTrack = uniqueTracks.get(normalizedKey)!
+          const currentPriority = this.serviceConfig[track.source as keyof typeof this.serviceConfig]?.priority || 999
+          const existingPriority = this.serviceConfig[existingTrack.source as keyof typeof this.serviceConfig]?.priority || 999
+          
+          if (currentPriority < existingPriority) {
+            uniqueTracks.set(normalizedKey, track)
+          }
+        }
+      }
+
+      finalTracks = Array.from(uniqueTracks.values())
+        .sort((a, b) => {
+          // サービス優先度でソート
+          const aPriority = this.serviceConfig[a.source as keyof typeof this.serviceConfig]?.priority || 999
+          const bPriority = this.serviceConfig[b.source as keyof typeof this.serviceConfig]?.priority || 999
+          return aPriority - bPriority
+        })
+        .slice(0, limit)
+    } else {
+      // 結果を分離して返却（マージしない）
+      finalTracks = [
+        ...(sources.spotify || []).slice(0, Math.ceil(limit / 2)),
+        ...(sources.appleMusic || []).slice(0, Math.ceil(limit / 2))
+      ].slice(0, limit)
+    }
+
+    const result = {
+      tracks: finalTracks,
+      sources,
+      total: finalTracks.length
+    }
+
+    // 結果をキャッシュ
+    this.setCache(cacheKey, result, 180000) // 3分キャッシュ
+
+    return result
+  },
+
+  // サービス別詳細検索
+  serviceSpecificSearch: async function(params: {
+    query: string
+    service: 'spotify' | 'appleMusic'
+    searchType?: 'track' | 'artist' | 'album' | 'all'
+    limit?: number
+  }): Promise<{
+    tracks?: Track[]
+    artists?: unknown[]
+    albums?: unknown[]
+    source: string
+  }> {
+    const { query, service, searchType = 'track', limit = 20 } = params
+    const cacheKey = `${service}_search_${query}_${searchType}_${limit}`
+    
+    const cached = this.getFromCache<{
+      tracks?: Track[]
+      artists?: unknown[]
+      albums?: unknown[]
+      source: string
+    }>(cacheKey)
+    if (cached) return cached
+
+    const result: {
+      tracks?: Track[]
+      artists?: unknown[]
+      albums?: unknown[]
+      source: string
+    } = { source: service }
+
+    try {
+      if (service === 'spotify') {
+        if (searchType === 'track' || searchType === 'all') {
+          const spotifyResult = await spotifyAPI.search({ query, type: 'track', limit })
+          result.tracks = spotifyResult.tracks?.items.map(item => ({
+            id: `spotify_${item.id}`,
+            spotifyId: item.id,
+            title: item.name,
+            artist: item.artists.map(a => a.name).join(', '),
+            album: item.album.name,
+            duration: item.duration_ms,
+            artworkUrl: item.album.images[0]?.url,
+            previewUrl: item.preview_url || undefined,
+            externalUrl: item.external_urls.spotify,
+            createdAt: new Date().toISOString()
+          } as Track)) || []
+        }
+        
+        if (searchType === 'artist' || searchType === 'all') {
+          const artistResult = await spotifyAPI.search({ query, type: 'artist', limit })
+          result.artists = artistResult.artists?.items || []
+        }
+        
+        if (searchType === 'album' || searchType === 'all') {
+          const albumResult = await spotifyAPI.search({ query, type: 'album', limit })
+          result.albums = albumResult.albums?.items || []
+        }
+      } else if (service === 'appleMusic') {
+        if (searchType === 'track' || searchType === 'all') {
+          result.tracks = await appleMusicAPI.searchUnified(query, limit)
+        }
+        
+        if (searchType === 'artist' || searchType === 'album' || searchType === 'all') {
+          const appleMusicResult = await appleMusicAPI.advancedSearch({
+            term: query,
+            types: searchType === 'all' ? ['songs', 'artists', 'albums'] : [searchType === 'artist' ? 'artists' : 'albums'],
+            limit
+          })
+          
+          if (searchType === 'artist' || searchType === 'all') {
+            result.artists = appleMusicResult.results.artists?.data || []
+          }
+          
+          if (searchType === 'album' || searchType === 'all') {
+            result.albums = appleMusicResult.results.albums?.data || []
+          }
+        }
+      }
+    } catch (error) {
+      console.error(`${service} search failed:`, error)
+      result.tracks = []
+      result.artists = []
+      result.albums = []
+    }
+
+    // キャッシュ
+    this.setCache(cacheKey, result, 240000) // 4分キャッシュ
+    
+    return result
+  },
+
+  // サービス優先度設定更新
+  updateServiceConfig: function(serviceId: 'spotify' | 'appleMusic', config: { 
+    enabled?: boolean
+    priority?: number
+    weight?: number
+  }) {
+    if (this.serviceConfig[serviceId]) {
+      this.serviceConfig[serviceId] = {
+        ...this.serviceConfig[serviceId],
+        ...config
+      }
+      
+      // 設定変更時にキャッシュをクリア
+      this.clearCache()
+    }
+  },
+
+  // サービス接続状態チェック
+  checkServiceConnections: async function(): Promise<{
+    spotify: { connected: boolean; authenticated: boolean }
+    appleMusic: { connected: boolean; authenticated: boolean }
+  }> {
+    const results = {
+      spotify: { connected: false, authenticated: false },
+      appleMusic: { connected: false, authenticated: false }
+    }
+
+    try {
+      // Spotify接続チェック
+      const spotifyToken = spotifyAPI.getStoredAccessToken()
+      results.spotify.authenticated = !!spotifyToken
+      results.spotify.connected = !!spotifyToken || import.meta.env.DEV
+    } catch (error) {
+      console.warn('Spotify connection check failed:', error)
+    }
+
+    try {
+      // Apple Music接続チェック
+      results.appleMusic.connected = await appleMusicAPI.checkConnection()
+      results.appleMusic.authenticated = appleMusicAPI.isAuthorized()
+    } catch (error) {
+      console.warn('Apple Music connection check failed:', error)
+    }
+
+    return results
+  },
+
+  // 統合おすすめシステム
+  getMultiServiceRecommendations: async function(params?: {
+    seedTracks?: string[]
+    genres?: string[]
+    limit?: number
+    services?: ('spotify' | 'appleMusic')[]
+  }): Promise<{
+    tracks: Track[]
+    sources: { spotify?: Track[]; appleMusic?: Track[] }
+    total: number
+  }> {
+    const { limit = 20, services = ['spotify', 'appleMusic'] } = params || {}
+    const cacheKey = `multi_recommendations_${JSON.stringify(params)}`
+    
+    const cached = this.getFromCache<{
+      tracks: Track[]
+      sources: { spotify?: Track[]; appleMusic?: Track[] }
+      total: number
+    }>(cacheKey)
+    if (cached) return cached
+
+    const sources: { spotify?: Track[]; appleMusic?: Track[] } = {}
+    const recommendationPromises: Promise<void>[] = []
+
+    // Spotifyおすすめ取得
+    if (services.includes('spotify') && this.serviceConfig.spotify.enabled) {
+      const spotifyPromise = (async () => {
+        try {
+          // 開発環境ではモックデータを使用
+          if (import.meta.env.DEV) {
+            const mockRecommendations = enhancedMockTracks
+              .filter(track => !params?.genres || 
+                params.genres.some(g => track.genre.some(tg => tg.toLowerCase().includes(g.toLowerCase()))))
+              .sort(() => Math.random() - 0.5)
+              .slice(0, Math.ceil(limit * this.serviceConfig.spotify.weight))
+            sources.spotify = mockRecommendations
+          } else {
+            // 本番環境でのSpotify APIを使用した実装
+            sources.spotify = []
+          }
+        } catch (error) {
+          console.warn('Spotify recommendations failed:', error)
+          sources.spotify = []
+        }
+      })()
+      recommendationPromises.push(spotifyPromise)
+    }
+
+    // Apple Musicおすすめ取得
+    if (services.includes('appleMusic') && this.serviceConfig.appleMusic.enabled) {
+      const appleMusicPromise = (async () => {
+        try {
+          const recommendations = await appleMusicAPI.getRecommendations()
+          sources.appleMusic = Array.isArray(recommendations) 
+            ? recommendations.slice(0, Math.ceil(limit * this.serviceConfig.appleMusic.weight))
+            : []
+        } catch (error) {
+          console.warn('Apple Music recommendations failed:', error)
+          sources.appleMusic = []
+        }
+      })()
+      recommendationPromises.push(appleMusicPromise)
+    }
+
+    await Promise.all(recommendationPromises)
+
+    // 結果のマージ
+    const allTracks = [
+      ...(sources.spotify || []),
+      ...(sources.appleMusic || [])
+    ]
+
+    const result = {
+      tracks: allTracks.slice(0, limit),
+      sources,
+      total: allTracks.length
+    }
+
+    this.setCache(cacheKey, result, 300000) // 5分キャッシュ
+    
+    return result
   }
 }
 

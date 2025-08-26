@@ -40,6 +40,53 @@ export interface SpotifyAuthResponse {
   scope: string
 }
 
+export interface SpotifyArtist {
+  id: string
+  name: string
+  images: Array<{ url: string; width: number; height: number }>
+  genres: string[]
+  popularity: number
+  followers: { total: number }
+  external_urls: { spotify: string }
+}
+
+export interface SpotifyAlbum {
+  id: string
+  name: string
+  artists: Array<{ id: string; name: string }>
+  images: Array<{ url: string; width: number; height: number }>
+  release_date: string
+  total_tracks: number
+  genres: string[]
+  popularity: number
+  external_urls: { spotify: string }
+  tracks?: {
+    items: SpotifyTrack[]
+    total: number
+  }
+}
+
+export interface SpotifyExtendedSearchResponse {
+  tracks?: {
+    items: SpotifyTrack[]
+    total: number
+    limit: number
+    offset: number
+  }
+  artists?: {
+    items: SpotifyArtist[]
+    total: number
+    limit: number
+    offset: number
+  }
+  albums?: {
+    items: SpotifyAlbum[]
+    total: number
+    limit: number
+    offset: number
+  }
+}
+
 class SpotifyAPI {
   private clientId: string
   private redirectUri: string
@@ -262,6 +309,283 @@ class SpotifyAPI {
     return response.json()
   }
 
+  // 拡張検索（複数タイプ対応）
+  async search(params: SpotifySearchParams): Promise<SpotifyExtendedSearchResponse> {
+    // 開発環境でのモック実装
+    if (import.meta.env.DEV) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          const mockResponse: SpotifyExtendedSearchResponse = {}
+          
+          if (params.type === 'track' || !params.type) {
+            mockResponse.tracks = {
+              items: this.generateMockTracks(params.query, params.limit || 20),
+              total: 1000,
+              limit: params.limit || 20,
+              offset: params.offset || 0
+            }
+          }
+          
+          if (params.type === 'artist') {
+            mockResponse.artists = {
+              items: this.generateMockArtists(params.query, params.limit || 20),
+              total: 500,
+              limit: params.limit || 20,
+              offset: params.offset || 0
+            }
+          }
+          
+          if (params.type === 'album') {
+            mockResponse.albums = {
+              items: this.generateMockAlbums(params.query, params.limit || 20),
+              total: 800,
+              limit: params.limit || 20,
+              offset: params.offset || 0
+            }
+          }
+          
+          resolve(mockResponse)
+        }, 800)
+      })
+    }
+
+    if (!this.accessToken) {
+      throw new Error('No access token available')
+    }
+
+    const searchParams = new URLSearchParams({
+      q: params.query,
+      type: params.type,
+      limit: (params.limit || 20).toString(),
+      offset: (params.offset || 0).toString(),
+      ...(params.market && { market: params.market })
+    })
+
+    const response = await fetch(
+      `https://api.spotify.com/v1/search?${searchParams.toString()}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${this.accessToken}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    )
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error('Spotify access token expired')
+      }
+      if (response.status === 429) {
+        const retryAfter = response.headers.get('retry-after')
+        throw new Error(`Rate limited. Retry after ${retryAfter} seconds`)
+      }
+      throw new Error(`Spotify API error: ${response.status}`)
+    }
+
+    const responseData = await response.json()
+    
+    if (!isSpotifyExtendedSearchResponse(responseData)) {
+      throw new Error('Invalid search response format')
+    }
+    
+    return responseData
+  }
+
+  // アーティスト情報取得
+  async getArtist(artistId: string): Promise<SpotifyArtist> {
+    if (import.meta.env.DEV) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            id: artistId,
+            name: 'モックアーティスト',
+            images: [{ url: 'https://picsum.photos/400/400?random=300', width: 400, height: 400 }],
+            genres: ['j-pop', 'pop'],
+            popularity: 82,
+            followers: { total: 1250000 },
+            external_urls: { spotify: `https://open.spotify.com/artist/${artistId}` }
+          })
+        }, 500)
+      })
+    }
+
+    if (!this.accessToken) {
+      throw new Error('No access token available')
+    }
+
+    const response = await fetch(`https://api.spotify.com/v1/artists/${artistId}`, {
+      headers: {
+        'Authorization': `Bearer ${this.accessToken}`,
+        'Content-Type': 'application/json'
+      }
+    })
+
+    if (!response.ok) {
+      if (response.status === 429) {
+        const retryAfter = response.headers.get('retry-after')
+        throw new Error(`Rate limited. Retry after ${retryAfter} seconds`)
+      }
+      throw new Error(`Failed to get artist: ${response.status}`)
+    }
+
+    const responseData = await response.json()
+    
+    if (!isSpotifyArtist(responseData)) {
+      throw new Error('Invalid artist response format')
+    }
+    
+    return responseData
+  }
+
+  // アルバム情報取得
+  async getAlbum(albumId: string): Promise<SpotifyAlbum> {
+    if (import.meta.env.DEV) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            id: albumId,
+            name: 'モックアルバム',
+            artists: [{ id: 'artist1', name: 'モックアーティスト' }],
+            images: [{ url: 'https://picsum.photos/400/400?random=400', width: 400, height: 400 }],
+            release_date: '2024-01-01',
+            total_tracks: 12,
+            genres: ['j-pop'],
+            popularity: 75,
+            external_urls: { spotify: `https://open.spotify.com/album/${albumId}` },
+            tracks: {
+              items: this.generateMockTracks('album tracks', 12),
+              total: 12
+            }
+          })
+        }, 500)
+      })
+    }
+
+    if (!this.accessToken) {
+      throw new Error('No access token available')
+    }
+
+    const response = await fetch(`https://api.spotify.com/v1/albums/${albumId}`, {
+      headers: {
+        'Authorization': `Bearer ${this.accessToken}`,
+        'Content-Type': 'application/json'
+      }
+    })
+
+    if (!response.ok) {
+      if (response.status === 429) {
+        const retryAfter = response.headers.get('retry-after')
+        throw new Error(`Rate limited. Retry after ${retryAfter} seconds`)
+      }
+      throw new Error(`Failed to get album: ${response.status}`)
+    }
+
+    const responseData = await response.json()
+    
+    if (!isSpotifyAlbum(responseData)) {
+      throw new Error('Invalid album response format')
+    }
+    
+    return responseData
+  }
+
+  // アーティストのトップトラック取得
+  async getArtistTopTracks(artistId: string, market: string = 'JP'): Promise<SpotifyTrack[]> {
+    if (import.meta.env.DEV) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve(this.generateMockTracks('top tracks', 10))
+        }, 600)
+      })
+    }
+
+    if (!this.accessToken) {
+      throw new Error('No access token available')
+    }
+
+    const response = await fetch(
+      `https://api.spotify.com/v1/artists/${artistId}/top-tracks?market=${market}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${this.accessToken}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    )
+
+    if (!response.ok) {
+      throw new Error(`Failed to get artist top tracks: ${response.status}`)
+    }
+
+    const responseData = await response.json()
+    return responseData.tracks || []
+  }
+
+  // モックアーティスト生成
+  private generateMockArtists(query: string, count: number): SpotifyArtist[] {
+    const mockArtists: SpotifyArtist[] = []
+    const genres = ['j-pop', 'rock', 'electronic', 'jazz', 'classical', 'hip-hop', 'r&b']
+    
+    for (let i = 0; i < count; i++) {
+      const genre = genres[i % genres.length]
+      mockArtists.push({
+        id: `mock_artist_${i}_${Date.now()}`,
+        name: `${query} アーティスト ${i + 1}`,
+        images: [
+          { 
+            url: `https://picsum.photos/400/400?random=${i + 500}`, 
+            width: 400, 
+            height: 400 
+          }
+        ],
+        genres: [genre],
+        popularity: Math.floor(Math.random() * 100),
+        followers: { total: Math.floor(Math.random() * 10000000) },
+        external_urls: {
+          spotify: `https://open.spotify.com/artist/mock_${i}`
+        }
+      })
+    }
+    
+    return mockArtists
+  }
+
+  // モックアルバム生成
+  private generateMockAlbums(query: string, count: number): SpotifyAlbum[] {
+    const mockAlbums: SpotifyAlbum[] = []
+    const genres = ['j-pop', 'rock', 'electronic', 'jazz', 'classical', 'hip-hop', 'r&b']
+    
+    for (let i = 0; i < count; i++) {
+      const genre = genres[i % genres.length]
+      mockAlbums.push({
+        id: `mock_album_${i}_${Date.now()}`,
+        name: `${query} アルバム ${i + 1}`,
+        artists: [
+          { 
+            id: `artist_${i}`, 
+            name: `アーティスト ${String.fromCharCode(65 + (i % 26))}` 
+          }
+        ],
+        images: [
+          { 
+            url: `https://picsum.photos/400/400?random=${i + 600}`, 
+            width: 400, 
+            height: 400 
+          }
+        ],
+        release_date: `2024-${String((i % 12) + 1).padStart(2, '0')}-01`,
+        total_tracks: Math.floor(Math.random() * 15) + 5,
+        genres: [genre],
+        popularity: Math.floor(Math.random() * 100),
+        external_urls: {
+          spotify: `https://open.spotify.com/album/mock_${i}`
+        }
+      })
+    }
+    
+    return mockAlbums
+  }
+
   // モック楽曲生成
   private generateMockTracks(query: string, count: number): SpotifyTrack[] {
     const mockTracks: SpotifyTrack[] = []
@@ -353,6 +677,33 @@ function isSpotifyTrack(data: unknown): data is SpotifyTrack {
     typeof (data as SpotifyTrack).id === 'string' &&
     typeof (data as SpotifyTrack).name === 'string' &&
     Array.isArray((data as SpotifyTrack).artists)
+  )
+}
+
+function isSpotifyExtendedSearchResponse(data: unknown): data is SpotifyExtendedSearchResponse {
+  return (
+    typeof data === 'object' &&
+    data !== null
+  )
+}
+
+function isSpotifyArtist(data: unknown): data is SpotifyArtist {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    typeof (data as SpotifyArtist).id === 'string' &&
+    typeof (data as SpotifyArtist).name === 'string' &&
+    Array.isArray((data as SpotifyArtist).images)
+  )
+}
+
+function isSpotifyAlbum(data: unknown): data is SpotifyAlbum {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    typeof (data as SpotifyAlbum).id === 'string' &&
+    typeof (data as SpotifyAlbum).name === 'string' &&
+    Array.isArray((data as SpotifyAlbum).artists)
   )
 }
 
