@@ -1,6 +1,17 @@
 // src/utils/playlistGenerator.ts
 import type { Track } from '../types'
 
+// Extended track interface with audio features for playlist generation
+export interface ExtendedTrack extends Track {
+  energy?: number // 0-1
+  valence?: number // 0-1 
+  danceability?: number // 0-1
+  popularity?: number // 0-100
+  bpm?: number
+  genre?: string[]
+  mood?: string[]
+}
+
 // プレイリストテンプレート定義
 export interface PlaylistTemplate {
   id: string
@@ -152,11 +163,12 @@ export class PlaylistGenerator {
       const stored = localStorage.getItem(this.storageKey)
       if (stored) {
         const data = JSON.parse(stored)
-        Object.entries(data).forEach(([id, playlist]: [string, any]) => {
+        Object.entries(data).forEach(([id, playlist]: [string, unknown]) => {
+          const playlistData = playlist as PlaylistEntry
           this.playlists.set(id, {
-            ...playlist,
-            createdAt: new Date(playlist.createdAt),
-            updatedAt: new Date(playlist.updatedAt)
+            ...playlistData,
+            createdAt: new Date(playlistData.createdAt),
+            updatedAt: new Date(playlistData.updatedAt)
           })
         })
       }
@@ -201,8 +213,8 @@ export class PlaylistGenerator {
       isPublic: false,
       tags: [template.name, ...template.criteria.genres || []],
       totalDuration: selectedTracks.reduce((sum, track) => sum + track.duration, 0),
-      averageEnergy: selectedTracks.reduce((sum, track) => sum + (track as any).energy || 0.5, 0) / selectedTracks.length,
-      genres: [...new Set(selectedTracks.flatMap(track => (track as any).genre || []))]
+      averageEnergy: selectedTracks.reduce((sum, track) => sum + ((track as ExtendedTrack).energy ?? 0.5), 0) / selectedTracks.length,
+      genres: [...new Set(selectedTracks.flatMap(track => (track as ExtendedTrack).genre ?? []))]
     }
 
     this.playlists.set(playlist.id, playlist)
@@ -217,9 +229,10 @@ export class PlaylistGenerator {
     trackCount: number = 20,
     name?: string
   ): PlaylistEntry {
-    const genreTracks = this.tracks.filter(track => 
-      (track as any).genre && (track as any).genre.includes(genre)
-    )
+    const genreTracks = this.tracks.filter(track => {
+      const extendedTrack = track as ExtendedTrack
+      return extendedTrack.genre && extendedTrack.genre.includes(genre)
+    })
 
     if (genreTracks.length === 0) {
       throw new Error(`No tracks found for genre: ${genre}`)
@@ -227,7 +240,7 @@ export class PlaylistGenerator {
 
     // 人気度順でソートして上位を選択
     const selectedTracks = genreTracks
-      .sort((a, b) => ((b as any).popularity || 0) - ((a as any).popularity || 0))
+      .sort((a, b) => ((b as ExtendedTrack).popularity ?? 0) - ((a as ExtendedTrack).popularity ?? 0))
       .slice(0, Math.min(trackCount, genreTracks.length))
 
     const playlist: PlaylistEntry = {
@@ -241,7 +254,7 @@ export class PlaylistGenerator {
       isPublic: false,
       tags: [genre, 'auto-generated'],
       totalDuration: selectedTracks.reduce((sum, track) => sum + track.duration, 0),
-      averageEnergy: selectedTracks.reduce((sum, track) => sum + (track as any).energy || 0.5, 0) / selectedTracks.length,
+      averageEnergy: selectedTracks.reduce((sum, track) => sum + ((track as ExtendedTrack).energy ?? 0.5), 0) / selectedTracks.length,
       genres: [genre]
     }
 
@@ -269,8 +282,8 @@ export class PlaylistGenerator {
       isPublic: false,
       tags: ['custom', ...tags],
       totalDuration: tracks.reduce((sum, track) => sum + track.duration, 0),
-      averageEnergy: tracks.reduce((sum, track) => sum + (track as any).energy || 0.5, 0) / (tracks.length || 1),
-      genres: [...new Set(tracks.flatMap(track => (track as any).genre || []))]
+      averageEnergy: tracks.reduce((sum, track) => sum + ((track as ExtendedTrack).energy ?? 0.5), 0) / (tracks.length || 1),
+      genres: [...new Set(tracks.flatMap(track => (track as ExtendedTrack).genre ?? []))]
     }
 
     this.playlists.set(playlist.id, playlist)
@@ -297,10 +310,10 @@ export class PlaylistGenerator {
         ? updates.tracks.reduce((sum, track) => sum + track.duration, 0)
         : playlist.totalDuration,
       averageEnergy: updates.tracks
-        ? updates.tracks.reduce((sum, track) => sum + (track as any).energy || 0.5, 0) / updates.tracks.length
+        ? updates.tracks.reduce((sum, track) => sum + ((track as ExtendedTrack).energy ?? 0.5), 0) / updates.tracks.length
         : playlist.averageEnergy,
       genres: updates.tracks
-        ? [...new Set(updates.tracks.flatMap(track => (track as any).genre || []))]
+        ? [...new Set(updates.tracks.flatMap(track => (track as ExtendedTrack).genre ?? []))]
         : playlist.genres
     }
 
@@ -363,13 +376,13 @@ export class PlaylistGenerator {
   // テンプレートによる楽曲フィルタリング
   private filterTracksByTemplate(template: PlaylistTemplate): Track[] {
     return this.tracks.filter(track => {
-      const extendedTrack = track as any
+      const extendedTrack = track as ExtendedTrack
 
       // ジャンルフィルター
       if (template.criteria.genres && template.criteria.genres.length > 0) {
-        const trackGenres = extendedTrack.genre || []
+        const trackGenres = extendedTrack.genre ?? []
         if (!template.criteria.genres.some(g => 
-          trackGenres.some((tg: string) => tg.toLowerCase().includes(g.toLowerCase()))
+          trackGenres.some(tg => tg.toLowerCase().includes(g.toLowerCase()))
         )) {
           return false
         }
@@ -377,7 +390,7 @@ export class PlaylistGenerator {
 
       // エネルギーフィルター
       if (template.criteria.energy) {
-        const energy = extendedTrack.energy || 0.5
+        const energy = extendedTrack.energy ?? 0.5
         if (energy < template.criteria.energy.min || energy > template.criteria.energy.max) {
           return false
         }
@@ -385,7 +398,7 @@ export class PlaylistGenerator {
 
       // ヴァレンス（感情価）フィルター
       if (template.criteria.valence) {
-        const valence = extendedTrack.valence || 0.5
+        const valence = extendedTrack.valence ?? 0.5
         if (valence < template.criteria.valence.min || valence > template.criteria.valence.max) {
           return false
         }
@@ -393,7 +406,7 @@ export class PlaylistGenerator {
 
       // ダンサビリティフィルター
       if (template.criteria.danceability) {
-        const danceability = extendedTrack.danceability || 0.5
+        const danceability = extendedTrack.danceability ?? 0.5
         if (danceability < template.criteria.danceability.min || 
             danceability > template.criteria.danceability.max) {
           return false
@@ -410,7 +423,7 @@ export class PlaylistGenerator {
 
       // 人気度フィルター
       if (template.criteria.popularity) {
-        const popularity = extendedTrack.popularity || 50
+        const popularity = extendedTrack.popularity ?? 50
         if (popularity < template.criteria.popularity.min || 
             popularity > template.criteria.popularity.max) {
           return false
@@ -434,26 +447,26 @@ export class PlaylistGenerator {
     switch (algorithm) {
       case 'high_energy':
         return shuffled
-          .sort((a, b) => ((b as any).energy || 0) - ((a as any).energy || 0))
+          .sort((a, b) => ((b as ExtendedTrack).energy ?? 0) - ((a as ExtendedTrack).energy ?? 0))
           .slice(0, count)
 
       case 'chill':
         return shuffled
-          .sort((a, b) => ((a as any).energy || 1) - ((b as any).energy || 1))
+          .sort((a, b) => ((a as ExtendedTrack).energy ?? 1) - ((b as ExtendedTrack).energy ?? 1))
           .slice(0, count)
 
       case 'focused':
         return shuffled
-          .filter(track => ((track as any).energy || 0.5) < 0.6)
-          .sort((a, b) => ((b as any).popularity || 0) - ((a as any).popularity || 0))
+          .filter(track => ((track as ExtendedTrack).energy ?? 0.5) < 0.6)
+          .sort((a, b) => ((b as ExtendedTrack).popularity ?? 0) - ((a as ExtendedTrack).popularity ?? 0))
           .slice(0, count)
 
-      case 'diverse':
+      case 'diverse': {
         // ジャンル多様性を重視
         const genreMap = new Map<string, Track[]>()
         shuffled.forEach(track => {
-          const genres = (track as any).genre || ['Unknown']
-          genres.forEach((genre: string) => {
+          const genres = (track as ExtendedTrack).genre ?? ['Unknown']
+          genres.forEach(genre => {
             if (!genreMap.has(genre)) genreMap.set(genre, [])
             genreMap.get(genre)!.push(track)
           })
@@ -475,16 +488,20 @@ export class PlaylistGenerator {
         }
 
         return selected.slice(0, count)
+      }
 
       case 'balanced':
-      default:
+      default: {
         return shuffled
           .sort((a, b) => {
-            const scoreA = ((a as any).popularity || 0) * 0.5 + ((a as any).energy || 0) * 0.3 + ((a as any).valence || 0) * 0.2
-            const scoreB = ((b as any).popularity || 0) * 0.5 + ((b as any).energy || 0) * 0.3 + ((b as any).valence || 0) * 0.2
+            const extendedA = a as ExtendedTrack
+            const extendedB = b as ExtendedTrack
+            const scoreA = (extendedA.popularity ?? 0) * 0.5 + (extendedA.energy ?? 0) * 0.3 + (extendedA.valence ?? 0) * 0.2
+            const scoreB = (extendedB.popularity ?? 0) * 0.5 + (extendedB.energy ?? 0) * 0.3 + (extendedB.valence ?? 0) * 0.2
             return scoreB - scoreA
           })
           .slice(0, count)
+      }
     }
   }
 
@@ -495,7 +512,7 @@ export class PlaylistGenerator {
     }
 
     // 楽曲のジャンルベースでカラーパレット選択
-    const genres = tracks.flatMap(track => (track as any).genre || [])
+    const genres = tracks.flatMap(track => (track as ExtendedTrack).genre ?? [])
     const genreColors = {
       'Electronic': ['#3b82f6', '#1d4ed8'],
       'Jazz': ['#d97706', '#92400e'],
@@ -506,8 +523,8 @@ export class PlaylistGenerator {
       'Ambient': ['#06b6d4', '#0891b2']
     }
 
-    const primaryGenre = genres[0] || 'Electronic'
-    const colors = genreColors[primaryGenre as keyof typeof genreColors] || genreColors.Electronic
+    const primaryGenre = genres[0] ?? 'Electronic'
+    const colors = genreColors[primaryGenre as keyof typeof genreColors] ?? genreColors.Electronic
 
     return `linear-gradient(135deg, ${colors[0]} 0%, ${colors[1]} 100%)`
   }

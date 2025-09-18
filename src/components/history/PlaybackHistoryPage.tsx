@@ -1,13 +1,13 @@
 // src/components/history/PlaybackHistoryPage.tsx
 import {
-  Clock, Play, Heart, MoreHorizontal, Filter, SortAsc, Calendar,
-  Trophy, Medal, Award, Star, Target, Zap, BarChart3, TrendingUp,
-  Music, Headphones, Volume2, SkipForward, RotateCcw
+  Clock, Play, Heart, MoreHorizontal, Filter,
+  Trophy, Medal, Award, Star, Target, BarChart3,
+  Music, Headphones, RotateCcw
 } from 'lucide-react'
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { useMusicStore } from '../../stores/musicStore'
 import { useMyPageStore } from '../../stores/myPageStore'
-import { PlaybackHistoryManager, type PlaybackHistoryEntry } from '../../utils/playbackHistoryManager'
+import { PlaybackHistoryManager, type PlaybackHistoryEntry, type PlaybackStats } from '../../utils/playbackHistoryManager'
 
 interface FilterOptions {
   liked: boolean | null
@@ -30,13 +30,19 @@ export const PlaybackHistoryPage: React.FC<PlaybackHistoryPageProps> = ({
   
   const [historyManager] = useState(() => new PlaybackHistoryManager())
   const [historyEntries, setHistoryEntries] = useState<PlaybackHistoryEntry[]>([])
-  const [clearRanking, setClearRanking] = useState<any>(null)
-  const [stats, setStats] = useState<any>(null)
+  const [clearRanking, setClearRanking] = useState<{
+    gold: PlaybackHistoryEntry[]
+    silver: PlaybackHistoryEntry[]
+    bronze: PlaybackHistoryEntry[]
+    cleared: PlaybackHistoryEntry[]
+    uncleared: PlaybackHistoryEntry[]
+  } | null>(null)
+  const [stats, setStats] = useState<PlaybackStats | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [showFilters, setShowFilters] = useState(false)
   const [currentView, setCurrentView] = useState<'grid' | 'list' | 'ranking'>('grid')
   
-  const [filters, setFilters] = useState<FilterOptions>({
+  const [filters] = useState<FilterOptions>({
     liked: null,
     completionRateMin: 0,
     playCountMin: 1,
@@ -148,7 +154,7 @@ export const PlaybackHistoryPage: React.FC<PlaybackHistoryPageProps> = ({
   }, [historyManager, loadData])
 
   // グリッドアイテムコンポーネント
-  const GridItem: React.FC<{ entry: PlaybackHistoryEntry; index: number }> = ({ entry, index }) => {
+  const GridItem: React.FC<{ entry: PlaybackHistoryEntry }> = ({ entry }) => {
     const completionBadge = getCompletionBadge(entry.completionRate)
     const rankBadge = getRankBadge(entry)
     const RankIcon = rankBadge.icon
@@ -308,8 +314,8 @@ export const PlaybackHistoryPage: React.FC<PlaybackHistoryPageProps> = ({
       </div>
       
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
-        {entries.slice(0, 8).map((entry, index) => (
-          <GridItem key={entry.trackId} entry={entry} index={index} />
+        {entries.slice(0, 8).map((entry) => (
+          <GridItem key={entry.trackId} entry={entry} />
         ))}
       </div>
     </div>
@@ -387,7 +393,7 @@ export const PlaybackHistoryPage: React.FC<PlaybackHistoryPageProps> = ({
             ].map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
-                onClick={() => setCurrentView(id as any)}
+                onClick={() => setCurrentView(id as 'grid' | 'list' | 'ranking')}
                 className={`px-4 py-2 rounded-md transition-colors flex items-center space-x-2 ${
                   currentView === id 
                     ? 'text-white' 
@@ -450,8 +456,8 @@ export const PlaybackHistoryPage: React.FC<PlaybackHistoryPageProps> = ({
       {/* グリッドビュー */}
       {currentView === 'grid' && (
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-6">
-          {historyEntries.slice(0, 32).map((entry, index) => (
-            <GridItem key={entry.trackId} entry={entry} index={index} />
+          {historyEntries.slice(0, 32).map((entry) => (
+            <GridItem key={entry.trackId} entry={entry} />
           ))}
         </div>
       )}

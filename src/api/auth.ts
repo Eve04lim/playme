@@ -25,7 +25,7 @@ export const authApi = {
               user: {
                 id: '1',
                 email: credentials.email,
-                username: credentials.email.split('@')[0],
+                username: credentials.email?.split('@')[0] ?? 'user',
                 spotifyConnected: false,
                 appleMusicConnected: false,
                 createdAt: new Date().toISOString(),

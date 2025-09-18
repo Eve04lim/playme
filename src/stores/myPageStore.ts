@@ -92,7 +92,14 @@ const presetThemes: MyPageTheme[] = [
 ]
 
 // デフォルト設定
-const defaultTheme: MyPageTheme = presetThemes[0] // Spotify theme
+const defaultTheme: MyPageTheme = presetThemes[0] ?? {
+  id: 'default',
+  name: 'default',
+  primaryColor: '#1db954',
+  secondaryColor: '#1ed760',
+  backgroundColor: '#191414',
+  textColor: '#ffffff'
+}
 const defaultColumns: MyPageColumn[] = [
   { id: '1', playlistId: '', position: 0 },
   { id: '2', playlistId: '', position: 1 },
@@ -175,7 +182,9 @@ export const useMyPageStore = create<MyPageState>()(
         const { columns } = get()
         const newColumns = [...columns]
         const [movedColumn] = newColumns.splice(fromIndex, 1)
-        newColumns.splice(toIndex, 0, movedColumn)
+        if (movedColumn) {
+          newColumns.splice(toIndex, 0, movedColumn)
+        }
         
         // 位置を再設定
         const updatedColumns = newColumns.map((col, index) => ({

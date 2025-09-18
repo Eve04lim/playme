@@ -70,10 +70,10 @@ export const AdvancedRecommendations: React.FC<AdvancedRecommendationsProps> = (
   const [sections, setSections] = useState<RecommendationSection[]>([])
   const [isInitialLoading, setIsInitialLoading] = useState(true)
   const [userInteractions, setUserInteractions] = useState<UserInteraction[]>([])
-  const [availableGenres, setAvailableGenres] = useState<string[]>([])
+  const [availableGenres] = useState<string[]>([])
   const [previewTrack, setPreviewTrack] = useState<EnhancedTrack | null>(null)
   const [scrollPositions, setScrollPositions] = useState<Record<string, number>>({})
-  const [selectedFilters, setSelectedFilters] = useState<{
+  const [selectedFilters] = useState<{
     genres: string[]
     energyRange: [number, number]
     popularityRange: [number, number]
@@ -232,9 +232,6 @@ export const AdvancedRecommendations: React.FC<AdvancedRecommendationsProps> = (
     if (userInteractions.length === 0) return null
 
     const recentInteractions = userInteractions.slice(0, 100) // 最近100件を分析
-    const genrePreferences = new Map<string, number>()
-    const moodPreferences = new Map<string, number>()
-    const energyPreference = { total: 0, count: 0 }
 
     // TODO: 実際の実装では、trackIdから楽曲データを取得して分析
     // ここではモック実装
@@ -276,7 +273,7 @@ export const AdvancedRecommendations: React.FC<AdvancedRecommendationsProps> = (
             limit: tracksPerSection
           }).then(result => result.tracks as EnhancedTrack[])
 
-        case 'genre':
+        case 'genre': {
           const genres = params.genres as string[]
           if (genres.length === 0) return []
           
@@ -286,14 +283,16 @@ export const AdvancedRecommendations: React.FC<AdvancedRecommendationsProps> = (
             )
           )
           return genreResults.flat() as EnhancedTrack[]
+        }
 
-        case 'mood':
+        case 'mood': {
           const mood = params.mood as string
           if (!mood) return []
           
           return await musicApi.getTracksByMood(mood, tracksPerSection) as EnhancedTrack[]
+        }
 
-        case 'similarity':
+        case 'similarity': {
           const userPrefs = analyzeUserPreferences()
           if (!userPrefs) {
             // 履歴がない場合はポピュラー楽曲を返す
@@ -305,6 +304,7 @@ export const AdvancedRecommendations: React.FC<AdvancedRecommendationsProps> = (
             targetEnergy: userPrefs.averageEnergy,
             limit: tracksPerSection
           }) as EnhancedTrack[]
+        }
 
         default:
           return []
@@ -471,8 +471,7 @@ export const AdvancedRecommendations: React.FC<AdvancedRecommendationsProps> = (
   const TrackCard: React.FC<{ 
     track: EnhancedTrack
     sectionId: string
-    index: number 
-  }> = ({ track, sectionId, index }) => (
+  }> = ({ track, sectionId }) => (
     <div
       className="flex-shrink-0 w-48 cursor-pointer group"
       onMouseEnter={() => handleTrackHover(track)}
@@ -737,12 +736,11 @@ export const AdvancedRecommendations: React.FC<AdvancedRecommendationsProps> = (
                       transform: `translateX(-${scrollPosition * 200}px)`
                     }}
                   >
-                    {section.tracks.map((track, index) => (
+                    {section.tracks.map((track) => (
                       <TrackCard
                         key={track.id}
                         track={track}
                         sectionId={section.id}
-                        index={index}
                       />
                     ))}
                   </div>

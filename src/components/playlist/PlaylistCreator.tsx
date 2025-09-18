@@ -1,8 +1,7 @@
 // src/components/playlist/PlaylistCreator.tsx
 import {
   Plus, Zap, BookOpen, Leaf, PartyPopper, Train, Moon,
-  Music, Shuffle, Filter, Search, X, Heart, MoreHorizontal,
-  Play, Clock, Users, TrendingUp
+  Music, Shuffle
 } from 'lucide-react'
 import React, { useCallback, useEffect, useState } from 'react'
 import { useMyPageStore } from '../../stores/myPageStore'

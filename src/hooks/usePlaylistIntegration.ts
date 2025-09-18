@@ -1,13 +1,13 @@
 // src/hooks/usePlaylistIntegration.ts
 import { useCallback, useEffect, useState } from 'react'
 import { PlaylistGenerator, type PlaylistEntry } from '../utils/playlistGenerator'
-import type { Track } from '../types'
+import type { Track, Album, Artist, Playlist } from '../types'
 
 interface SearchResult {
   tracks: Track[]
-  artists: any[]
-  albums: any[]
-  playlists: any[]
+  artists: Artist[]
+  albums: Album[]
+  playlists: Playlist[]
 }
 
 interface UsePlaylistIntegrationOptions {
@@ -32,7 +32,7 @@ interface UsePlaylistIntegrationReturn {
   removeTrackFromPlaylist: (playlistId: string, trackId: string) => Promise<void>
   
   // バッチ操作
-  addMultipleToPlaylist: (playlistId: string, items: { type: 'track' | 'album' | 'artist'; data: any }[]) => Promise<void>
+  addMultipleToPlaylist: (playlistId: string, items: { type: 'track' | 'album' | 'artist'; data: Track | Album | Artist }[]) => Promise<void>
   
   // プレイリスト状態
   isLoading: boolean
@@ -232,7 +232,7 @@ export const usePlaylistIntegration = (
   // 複数アイテムの一括追加
   const addMultipleToPlaylist = useCallback(async (
     playlistId: string, 
-    items: { type: 'track' | 'album' | 'artist'; data: any }[]
+    items: { type: 'track' | 'album' | 'artist'; data: Track | Album | Artist }[]
   ): Promise<void> => {
     if (!playlistGenerator) {
       throw new Error('プレイリストジェネレーターが初期化されていません')
@@ -242,7 +242,7 @@ export const usePlaylistIntegration = (
     setError(null)
 
     try {
-      let allTracks: Track[] = []
+      const allTracks: Track[] = []
 
       for (const item of items) {
         switch (item.type) {

@@ -1,5 +1,5 @@
 // src/components/home/RecentTracksSection.tsx
-import { PlayCircle, Clock, Music, Heart, MoreHorizontal, Shuffle } from 'lucide-react'
+import { PlayCircle, Music, Shuffle } from 'lucide-react'
 import React, { useCallback } from 'react'
 import { useMyPageStore } from '../../stores/myPageStore'
 import { useMusicStore } from '../../stores/musicStore'
@@ -33,12 +33,6 @@ export const RecentTracksSection: React.FC<RecentTracksSectionProps> = ({
     }
   }, [tracks, handleTrackPlay])
 
-  // 時間フォーマット
-  const formatDuration = (ms: number) => {
-    const minutes = Math.floor(ms / 60000)
-    const seconds = Math.floor((ms % 60000) / 1000)
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`
-  }
 
   if (tracks.length === 0) {
     return (
@@ -189,7 +183,6 @@ export const RecentTracksSection: React.FC<RecentTracksSectionProps> = ({
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4">
               {tracks.slice(4, 10).map((track, index) => {
                 const isCurrentTrack = currentTrack?.id === track.id
-                const isTrackPlaying = isCurrentTrack && isPlaying
                 const actualIndex = index + 4
 
                 return (

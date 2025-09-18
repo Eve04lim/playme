@@ -81,7 +81,7 @@ export const normalizeAxiosError = (error: AxiosError): ApiError => {
     return {
       code: errorCode,
       message: data.error || data.message || ERROR_MESSAGES[errorCode as ErrorCodeValues] || 'エラーが発生しました',
-      details: data.details,
+      ...(data.details !== undefined && { details: data.details }),
       status: error.response.status
     }
   }

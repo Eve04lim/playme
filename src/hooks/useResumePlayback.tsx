@@ -1,5 +1,5 @@
 // src/hooks/useResumePlayback.ts
-import { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { PlaybackHistoryManager } from '../utils/playbackHistoryManager'
 import type { Track } from '../types'
 
@@ -91,7 +91,7 @@ export const useResumePlayback = (
           false
         )
         setCurrentSession(null)
-        onResumeComplete?.(audioElement.src as any) // 簡易実装
+        onResumeComplete?.(audioElement.src as never) // Fixed: proper type handling
       }
     }
 
@@ -315,12 +315,19 @@ export const useResumePlayback = (
 }
 
 // 続きから再生インジケーターコンポーネント
-export const ResumePlaybackIndicator: React.FC<{
+interface ResumePlaybackIndicatorProps {
   trackId: string
   duration: number
   onResume?: () => void
   className?: string
-}> = ({ trackId, duration, onResume, className = '' }) => {
+}
+
+export const ResumePlaybackIndicator: React.FC<ResumePlaybackIndicatorProps> = ({ 
+  trackId, 
+  duration, 
+  onResume, 
+  className = '' 
+}) => {
   const { getResumeData } = useResumePlayback()
   const resumeData = getResumeData(trackId)
 

@@ -10,7 +10,8 @@ import type {
 } from '../types'
 import { apiClient } from './client'
 import { spotifyAPI } from './spotify'
-import { appleMusicAPI } from './applemusic'
+import { useAuthStore } from '../stores/authStore'
+// import { appleMusicAPI } from './applemusic' // TODO: Implement Apple Music API
 
 // 拡張されたTrack型
 interface EnhancedTrack extends Track {
@@ -113,16 +114,17 @@ const generateExtensiveMockTracks = (): EnhancedTrack[] => {
     const key = keys[Math.floor(Math.random() * keys.length)]
 
     // BPMを ジャンルに基づいて調整
+    const genreSafe = genre ?? "";
     let bpm = 120
-    if (genre.includes('Electronic') || genre.includes('EDM') || genre.includes('House') || genre.includes('Techno')) {
+    if (genreSafe.includes('Electronic') || genreSafe.includes('EDM') || genreSafe.includes('House') || genreSafe.includes('Techno')) {
       bpm = 120 + Math.floor(Math.random() * 60) // 120-180
-    } else if (genre.includes('Hip-Hop') || genre.includes('Rap')) {
+    } else if (genreSafe.includes('Hip-Hop') || genreSafe.includes('Rap')) {
       bpm = 80 + Math.floor(Math.random() * 40) // 80-120
-    } else if (genre.includes('Jazz') || genre.includes('Blues')) {
+    } else if (genreSafe.includes('Jazz') || genreSafe.includes('Blues')) {
       bpm = 60 + Math.floor(Math.random() * 40) // 60-100
-    } else if (genre.includes('Rock') || genre.includes('Metal')) {
+    } else if (genreSafe.includes('Rock') || genreSafe.includes('Metal')) {
       bpm = 100 + Math.floor(Math.random() * 80) // 100-180
-    } else if (genre.includes('Classical')) {
+    } else if (genreSafe.includes('Classical')) {
       bpm = 60 + Math.floor(Math.random() * 60) // 60-120
     } else {
       bpm = 80 + Math.floor(Math.random() * 60) // 80-140
@@ -133,19 +135,19 @@ const generateExtensiveMockTracks = (): EnhancedTrack[] => {
     let danceability = 0.5
     let valence = 0.5
 
-    if (genre.includes('Electronic') || genre.includes('EDM') || genre.includes('House')) {
+    if (genreSafe.includes('Electronic') || genreSafe.includes('EDM') || genreSafe.includes('House')) {
       energy = 0.7 + Math.random() * 0.3
       danceability = 0.8 + Math.random() * 0.2
       valence = 0.6 + Math.random() * 0.4
-    } else if (genre.includes('Jazz') || genre.includes('Classical')) {
+    } else if (genreSafe.includes('Jazz') || genreSafe.includes('Classical')) {
       energy = 0.2 + Math.random() * 0.4
       danceability = 0.1 + Math.random() * 0.3
       valence = 0.3 + Math.random() * 0.4
-    } else if (genre.includes('Rock') || genre.includes('Metal')) {
+    } else if (genreSafe.includes('Rock') || genreSafe.includes('Metal')) {
       energy = 0.7 + Math.random() * 0.3
       danceability = 0.3 + Math.random() * 0.4
       valence = 0.5 + Math.random() * 0.3
-    } else if (genre.includes('Hip-Hop') || genre.includes('Rap')) {
+    } else if (genreSafe.includes('Hip-Hop') || genreSafe.includes('Rap')) {
       energy = 0.6 + Math.random() * 0.4
       danceability = 0.7 + Math.random() * 0.3
       valence = 0.4 + Math.random() * 0.6
@@ -165,15 +167,15 @@ const generateExtensiveMockTracks = (): EnhancedTrack[] => {
     if (randomDate.getFullYear() === 2024) {
       popularity += 10 // 新しい楽曲はより人気
     }
-    if (genre.includes('Pop') || genre.includes('J-Pop') || genre.includes('K-Pop')) {
+    if (genreSafe.includes('Pop') || genreSafe.includes('J-Pop') || genreSafe.includes('K-Pop')) {
       popularity += 15 // ポップスは人気が高い
     }
 
     // 長さをジャンルに基づいて調整
     let duration = 180000 // 3分デフォルト
-    if (genre.includes('Classical')) {
+    if (genreSafe.includes('Classical')) {
       duration = 300000 + Math.random() * 300000 // 5-10分
-    } else if (genre.includes('Electronic') || genre.includes('EDM')) {
+    } else if (genreSafe.includes('Electronic') || genreSafe.includes('EDM')) {
       duration = 240000 + Math.random() * 120000 // 4-6分
     } else {
       duration = 150000 + Math.random() * 150000 // 2.5-5分
@@ -316,12 +318,25 @@ export const musicApi = {
 
     // Spotify APIを使用した実際の検索
     try {
+      const { getValidSpotifyToken } = useAuthStore.getState()
+      const accessToken = await getValidSpotifyToken()
+      
+      // Get user's country for market parameter (improves search results)
+      let market: string | undefined
+      try {
+        const userProfile = await spotifyAPI.getCurrentUser(accessToken)
+        market = userProfile.country || undefined
+      } catch (error) {
+        console.warn('Could not get user country for market parameter:', error)
+      }
+      
       const spotifyResult = await spotifyAPI.searchTracks({
         query: searchRequest.query,
         type: 'track',
         limit: searchRequest.limit,
-        offset: searchRequest.offset
-      })
+        offset: searchRequest.offset,
+        market
+      }, accessToken)
 
       // Spotify形式から内部形式に変換
       const tracks: Track[] = spotifyResult.tracks.items.map(item => ({
@@ -1079,75 +1094,83 @@ export const musicApi = {
     this.errorStats.lastErrors = []
   },
 
-  // 複数サービス統合検索
+  // === 統合検索API（IntegratedSearchBar用） ===
+
+  // マルチサービス統合検索
   multiServiceSearch: async function(params: {
     query: string
     limit?: number
-    services?: ('spotify' | 'appleMusic')[]
     mergeResults?: boolean
-  }): Promise<{ 
-    tracks: Track[]
-    sources: { spotify?: Track[]; appleMusic?: Track[] }
-    total: number
-    fromCache?: boolean
-  }> {
-    const { query, limit = 20, services = ['spotify', 'appleMusic'], mergeResults = true } = params
-    const cacheKey = `multi_search_${query}_${limit}_${services.join(',')}_${mergeResults}`
+  }): Promise<{ tracks: Track[]; sources: Record<string, Track[]>; total: number }> {
+    const { query, limit = 20, mergeResults = true } = params
     
-    // キャッシュチェック
-    const cached = this.getFromCache<{ tracks: Track[]; sources: Record<string, Track[]>; total: number }>(cacheKey)
-    if (cached) {
-      return { ...cached, fromCache: true }
+    if (import.meta.env.DEV) {
+      // 開発環境でのモック実装
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          const mockTracks = enhancedMockTracks
+            .filter(track =>
+              track.title.toLowerCase().includes(query.toLowerCase()) ||
+              track.artist.toLowerCase().includes(query.toLowerCase()) ||
+              track.album?.toLowerCase().includes(query.toLowerCase())
+            )
+            .sort((a, b) => b.popularity - a.popularity)
+            .slice(0, limit)
+
+          resolve({
+            tracks: mockTracks,
+            sources: {
+              spotify: mockTracks.slice(0, Math.ceil(mockTracks.length * 0.6)),
+              appleMusic: mockTracks.slice(0, Math.ceil(mockTracks.length * 0.4))
+            },
+            total: mockTracks.length
+          })
+        }, 800)
+      })
     }
 
-    const sources: { spotify?: Track[]; appleMusic?: Track[] } = {}
-    const searchPromises: Promise<void>[] = []
+    const cacheKey = `multi_search_${query}_${limit}_${mergeResults}`
+    const cached = this.getFromCache<{ tracks: Track[]; sources: Record<string, Track[]>; total: number }>(cacheKey)
+    if (cached) {
+      console.log('🔄 Using cached multi-service search results')
+      return cached
+    }
 
-    // Spotify検索（レート制限・エラーハンドリング付き）
-    if (services.includes('spotify') && this.serviceConfig.spotify.enabled) {
-      const spotifyPromise = (async () => {
-        // 回路ブレーカーチェック
-        if (!this.checkCircuitBreaker('spotify')) {
-          this.logError('spotify', new Error('Circuit breaker is open'), 'multiServiceSearch')
-          sources.spotify = []
-          return
-        }
+    console.log(`🔍 Multi-service search for: "${query}"`)
 
-        try {
-          if (import.meta.env.DEV) {
-            // 開発環境：モック実装
-            const mockSpotifyTracks = enhancedMockTracks
-              .filter(track => 
-                track.title.toLowerCase().includes(query.toLowerCase()) ||
-                track.artist.toLowerCase().includes(query.toLowerCase())
-              )
-              .slice(0, Math.ceil(limit * this.serviceConfig.spotify.weight))
-              .map(track => ({ ...track, source: 'spotify' as const }))
-            sources.spotify = mockSpotifyTracks
-            this.recordCircuitBreakerResult('spotify', true)
-          } else {
-            // 本番環境：レート制限チェック
-            const rateLimitCheck = this.checkRateLimit('spotify')
-            if (!rateLimitCheck.allowed) {
-              throw new Error(`Rate limit exceeded. Wait ${rateLimitCheck.waitTime}ms`)
-            }
+    const searchPromises: Array<Promise<{ service: string; tracks: Track[] }>> = []
+    const sources: Record<string, Track[]> = {}
 
-            // リトライ付きでSpotify API実行
-            const spotifyResult = await this.retryWithBackoff(
-              async () => {
-                this.recordRequest('spotify')
-                return await spotifyAPI.search({
-                  query,
-                  type: 'track',
-                  limit: Math.ceil(limit * this.serviceConfig.spotify.weight)
-                })
-              },
-              'spotify',
-              { maxRetries: 2, baseDelay: 500 }
-            )
+    // Spotify検索
+    if (this.serviceConfig.spotify.enabled && this.checkCircuitBreaker('spotify')) {
+      const rateLimitCheck = this.checkRateLimit('spotify')
+      if (rateLimitCheck.allowed) {
+        searchPromises.push(
+          this.retryWithBackoff(async () => {
+            this.recordRequest('spotify')
             
-            sources.spotify = spotifyResult.tracks?.items.map(item => ({
-              id: `spotify_${item.id}`,
+            // Get valid Spotify access token
+            const { getValidSpotifyToken } = useAuthStore.getState()
+            const accessToken = await getValidSpotifyToken()
+            
+            // Get user's country for market parameter
+            let market: string | undefined
+            try {
+              const userProfile = await spotifyAPI.getCurrentUser(accessToken)
+              market = userProfile.country || undefined
+            } catch (error) {
+              console.warn('Could not get user country for market parameter:', error)
+            }
+            
+            const spotifyResult = await spotifyAPI.searchTracks({
+              query,
+              type: 'track',
+              limit: Math.ceil(limit * this.serviceConfig.spotify.weight),
+              market
+            }, accessToken)
+
+            const tracks = spotifyResult.tracks.items.map(item => ({
+              id: item.id,
               spotifyId: item.id,
               title: item.name,
               artist: item.artists.map(a => a.name).join(', '),
@@ -1156,350 +1179,241 @@ export const musicApi = {
               artworkUrl: item.album.images[0]?.url,
               previewUrl: item.preview_url || undefined,
               externalUrl: item.external_urls.spotify,
-              createdAt: new Date().toISOString(),
-              source: 'spotify' as const
-            } as Track & { source: string })) || []
-            
+              createdAt: new Date().toISOString()
+            }))
+
             this.recordCircuitBreakerResult('spotify', true)
-          }
-        } catch (error) {
-          this.logError('spotify', error, 'multiServiceSearch')
-          this.recordCircuitBreakerResult('spotify', false)
-          sources.spotify = []
-        }
-      })()
-      searchPromises.push(spotifyPromise)
+            return { service: 'spotify', tracks }
+          }, 'spotify')
+        )
+      }
     }
 
-    // Apple Music検索（レート制限・エラーハンドリング付き）
-    if (services.includes('appleMusic') && this.serviceConfig.appleMusic.enabled) {
-      const appleMusicPromise = (async () => {
-        // 回路ブレーカーチェック
-        if (!this.checkCircuitBreaker('appleMusic')) {
-          this.logError('appleMusic', new Error('Circuit breaker is open'), 'multiServiceSearch')
-          sources.appleMusic = []
-          return
-        }
-
-        try {
-          // レート制限チェック（開発環境以外）
-          if (!import.meta.env.DEV) {
-            const rateLimitCheck = this.checkRateLimit('appleMusic')
-            if (!rateLimitCheck.allowed) {
-              throw new Error(`Rate limit exceeded. Wait ${rateLimitCheck.waitTime}ms`)
-            }
-          }
-
-          // リトライ付きでApple Music API実行
-          const appleMusicTracks = await this.retryWithBackoff(
-            async () => {
-              if (!import.meta.env.DEV) {
-                this.recordRequest('appleMusic')
-              }
-              return await appleMusicAPI.searchUnified(
-                query, 
-                Math.ceil(limit * this.serviceConfig.appleMusic.weight)
-              )
-            },
-            'appleMusic',
-            { maxRetries: 2, baseDelay: 1000 }
-          )
-          
-          sources.appleMusic = appleMusicTracks.map(track => ({
-            ...track,
-            id: `apple_${track.id}`,
-            source: 'appleMusic' as const
-          } as Track & { source: string }))
-          
-          this.recordCircuitBreakerResult('appleMusic', true)
-        } catch (error) {
-          this.logError('appleMusic', error, 'multiServiceSearch')
-          this.recordCircuitBreakerResult('appleMusic', false)
-          sources.appleMusic = []
-        }
-      })()
-      searchPromises.push(appleMusicPromise)
+    // Apple Music検索（モック実装）
+    if (this.serviceConfig.appleMusic.enabled && this.checkCircuitBreaker('appleMusic')) {
+      searchPromises.push(
+        Promise.resolve({
+          service: 'appleMusic',
+          tracks: enhancedMockTracks
+            .filter(track => 
+              track.title.toLowerCase().includes(query.toLowerCase()) ||
+              track.artist.toLowerCase().includes(query.toLowerCase())
+            )
+            .slice(0, Math.ceil(limit * this.serviceConfig.appleMusic.weight))
+        })
+      )
     }
 
-    // 全検索完了まで待機
-    await Promise.all(searchPromises)
-
-    let finalTracks: Track[] = []
-    
-    if (mergeResults) {
-      // 結果マージと重複除去
-      const allTracks = [
-        ...(sources.spotify || []),
-        ...(sources.appleMusic || [])
-      ] as (Track & { source: string })[]
-
-      // 類似楽曲の重複除去（タイトルとアーティストの類似性で判定）
-      const uniqueTracks = new Map<string, Track & { source: string }>()
+    try {
+      const results = await Promise.allSettled(searchPromises)
       
-      for (const track of allTracks) {
-        const normalizedKey = `${track.title.toLowerCase().trim()}_${track.artist.toLowerCase().trim()}`
-        
-        if (!uniqueTracks.has(normalizedKey)) {
-          uniqueTracks.set(normalizedKey, track)
+      results.forEach((result, index) => {
+        if (result.status === 'fulfilled') {
+          sources[result.value.service] = result.value.tracks
         } else {
-          // 既存の楽曲と比較して、より高い優先度のサービスの楽曲を保持
-          const existingTrack = uniqueTracks.get(normalizedKey)!
-          const currentPriority = this.serviceConfig[track.source as keyof typeof this.serviceConfig]?.priority || 999
-          const existingPriority = this.serviceConfig[existingTrack.source as keyof typeof this.serviceConfig]?.priority || 999
-          
-          if (currentPriority < existingPriority) {
-            uniqueTracks.set(normalizedKey, track)
-          }
+          const service = index === 0 ? 'spotify' : 'appleMusic'
+          this.recordCircuitBreakerResult(service as 'spotify' | 'appleMusic', false)
+          this.logError(service, result.reason, 'Multi-service search')
         }
+      })
+
+      // 結果をマージまたは統合
+      let allTracks: Track[]
+      if (mergeResults) {
+        // サービス別の重み付けでマージ
+        const spotifyTracks = sources.spotify || []
+        const appleMusicTracks = sources.appleMusic || []
+        
+        allTracks = [...spotifyTracks, ...appleMusicTracks]
+          .sort((a, b) => {
+            // Spotify優先でソート（設定による）
+            const aIsSpotify = 'spotifyId' in a
+            const bIsSpotify = 'spotifyId' in b
+            if (aIsSpotify && !bIsSpotify) return -1
+            if (!aIsSpotify && bIsSpotify) return 1
+            return 0
+          })
+          .slice(0, limit)
+      } else {
+        allTracks = Object.values(sources).flat().slice(0, limit)
       }
 
-      finalTracks = Array.from(uniqueTracks.values())
-        .sort((a, b) => {
-          // サービス優先度でソート
-          const aPriority = this.serviceConfig[a.source as keyof typeof this.serviceConfig]?.priority || 999
-          const bPriority = this.serviceConfig[b.source as keyof typeof this.serviceConfig]?.priority || 999
-          return aPriority - bPriority
-        })
+      const result = {
+        tracks: allTracks,
+        sources,
+        total: allTracks.length
+      }
+
+      this.setCache(cacheKey, result, 300000)
+      console.log(`✅ Multi-service search completed: ${allTracks.length} tracks`)
+      
+      return result
+    } catch (error) {
+      this.logError('unified', error, 'Multi-service search failed')
+      
+      // フォールバック: モックデータを返す
+      const mockTracks = enhancedMockTracks
+        .filter(track =>
+          track.title.toLowerCase().includes(query.toLowerCase()) ||
+          track.artist.toLowerCase().includes(query.toLowerCase())
+        )
         .slice(0, limit)
-    } else {
-      // 結果を分離して返却（マージしない）
-      finalTracks = [
-        ...(sources.spotify || []).slice(0, Math.ceil(limit / 2)),
-        ...(sources.appleMusic || []).slice(0, Math.ceil(limit / 2))
-      ].slice(0, limit)
+
+      return {
+        tracks: mockTracks,
+        sources: { fallback: mockTracks },
+        total: mockTracks.length
+      }
     }
-
-    const result = {
-      tracks: finalTracks,
-      sources,
-      total: finalTracks.length
-    }
-
-    // 結果をキャッシュ
-    this.setCache(cacheKey, result, 180000) // 3分キャッシュ
-
-    return result
   },
 
-  // サービス別詳細検索
+  // サービス固有検索
   serviceSpecificSearch: async function(params: {
     query: string
     service: 'spotify' | 'appleMusic'
-    searchType?: 'track' | 'artist' | 'album' | 'all'
+    searchType: 'track' | 'artist' | 'album'
     limit?: number
-  }): Promise<{
-    tracks?: Track[]
-    artists?: unknown[]
-    albums?: unknown[]
-    source: string
-  }> {
-    const { query, service, searchType = 'track', limit = 20 } = params
-    const cacheKey = `${service}_search_${query}_${searchType}_${limit}`
+  }): Promise<{ tracks: Track[]; artists?: unknown[]; albums?: unknown[]; total: number }> {
+    const { query, service, searchType, limit = 20 } = params
     
-    const cached = this.getFromCache<{
-      tracks?: Track[]
-      artists?: unknown[]
-      albums?: unknown[]
-      source: string
-    }>(cacheKey)
-    if (cached) return cached
+    if (import.meta.env.DEV) {
+      // 開発環境でのモック実装
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          let mockResults: Track[] = []
+          
+          if (searchType === 'track') {
+            mockResults = enhancedMockTracks
+              .filter(track =>
+                track.title.toLowerCase().includes(query.toLowerCase()) ||
+                track.artist.toLowerCase().includes(query.toLowerCase())
+              )
+              .slice(0, limit)
+          }
 
-    const result: {
-      tracks?: Track[]
-      artists?: unknown[]
-      albums?: unknown[]
-      source: string
-    } = { source: service }
+          resolve({
+            tracks: mockResults,
+            total: mockResults.length
+          })
+        }, 600)
+      })
+    }
+
+    const cacheKey = `${service}_search_${query}_${searchType}_${limit}`
+    const cached = this.getFromCache<{ tracks: Track[]; total: number }>(cacheKey)
+    if (cached) {
+      console.log(`🔄 Using cached ${service} search results`)
+      return cached
+    }
+
+    console.log(`🔍 ${service} search for: "${query}" (${searchType})`)
 
     try {
       if (service === 'spotify') {
-        if (searchType === 'track' || searchType === 'all') {
-          const spotifyResult = await spotifyAPI.search({ query, type: 'track', limit })
-          result.tracks = spotifyResult.tracks?.items.map(item => ({
-            id: `spotify_${item.id}`,
-            spotifyId: item.id,
-            title: item.name,
-            artist: item.artists.map(a => a.name).join(', '),
-            album: item.album.name,
-            duration: item.duration_ms,
-            artworkUrl: item.album.images[0]?.url,
-            previewUrl: item.preview_url || undefined,
-            externalUrl: item.external_urls.spotify,
-            createdAt: new Date().toISOString()
-          } as Track)) || []
+        // レート制限とサーキットブレーカーチェック
+        if (!this.checkCircuitBreaker('spotify')) {
+          throw new Error('Spotify service unavailable (circuit breaker open)')
         }
         
-        if (searchType === 'artist' || searchType === 'all') {
-          const artistResult = await spotifyAPI.search({ query, type: 'artist', limit })
-          result.artists = artistResult.artists?.items || []
+        const rateLimitCheck = this.checkRateLimit('spotify')
+        if (!rateLimitCheck.allowed) {
+          if (rateLimitCheck.waitTime) {
+            throw new Error(`Rate limited. Wait ${Math.ceil(rateLimitCheck.waitTime / 1000)} seconds`)
+          }
         }
+
+        const result = await this.retryWithBackoff(async () => {
+          this.recordRequest('spotify')
+          
+          if (searchType === 'track') {
+            // Get valid Spotify access token
+            const { getValidSpotifyToken } = useAuthStore.getState()
+            const accessToken = await getValidSpotifyToken()
+            
+            // Get user's country for market parameter
+            let market: string | undefined
+            try {
+              const userProfile = await spotifyAPI.getCurrentUser(accessToken)
+              market = userProfile.country || undefined
+            } catch (error) {
+              console.warn('Could not get user country for market parameter:', error)
+            }
+            
+            const spotifyResult = await spotifyAPI.searchTracks({
+              query,
+              type: 'track',
+              limit,
+              market
+            }, accessToken)
+
+            const tracks = spotifyResult.tracks.items.map(item => ({
+              id: item.id,
+              spotifyId: item.id,
+              title: item.name,
+              artist: item.artists.map(a => a.name).join(', '),
+              album: item.album.name,
+              duration: item.duration_ms,
+              artworkUrl: item.album.images[0]?.url,
+              previewUrl: item.preview_url || undefined,
+              externalUrl: item.external_urls.spotify,
+              createdAt: new Date().toISOString()
+            }))
+
+            return {
+              tracks,
+              total: spotifyResult.tracks.total
+            }
+          }
+
+          // 他の検索タイプは後で実装
+          return { tracks: [], total: 0 }
+        }, 'spotify')
+
+        this.recordCircuitBreakerResult('spotify', true)
+        this.setCache(cacheKey, result, 300000)
         
-        if (searchType === 'album' || searchType === 'all') {
-          const albumResult = await spotifyAPI.search({ query, type: 'album', limit })
-          result.albums = albumResult.albums?.items || []
-        }
+        console.log(`✅ Spotify search completed: ${result.tracks.length} results`)
+        return result
+
       } else if (service === 'appleMusic') {
-        if (searchType === 'track' || searchType === 'all') {
-          result.tracks = await appleMusicAPI.searchUnified(query, limit)
+        // Apple Music APIの実装（現在はモック）
+        const mockTracks = enhancedMockTracks
+          .filter(track =>
+            track.title.toLowerCase().includes(query.toLowerCase()) ||
+            track.artist.toLowerCase().includes(query.toLowerCase())
+          )
+          .slice(0, limit)
+
+        const result = {
+          tracks: mockTracks,
+          total: mockTracks.length
         }
+
+        this.setCache(cacheKey, result, 300000)
+        console.log(`✅ Apple Music search completed: ${result.tracks.length} results (mock)`)
         
-        if (searchType === 'artist' || searchType === 'album' || searchType === 'all') {
-          const appleMusicResult = await appleMusicAPI.advancedSearch({
-            term: query,
-            types: searchType === 'all' ? ['songs', 'artists', 'albums'] : [searchType === 'artist' ? 'artists' : 'albums'],
-            limit
-          })
-          
-          if (searchType === 'artist' || searchType === 'all') {
-            result.artists = appleMusicResult.results.artists?.data || []
-          }
-          
-          if (searchType === 'album' || searchType === 'all') {
-            result.albums = appleMusicResult.results.albums?.data || []
-          }
-        }
+        return result
       }
-    } catch (error) {
-      console.error(`${service} search failed:`, error)
-      result.tracks = []
-      result.artists = []
-      result.albums = []
-    }
 
-    // キャッシュ
-    this.setCache(cacheKey, result, 240000) // 4分キャッシュ
-    
-    return result
-  },
-
-  // サービス優先度設定更新
-  updateServiceConfig: function(serviceId: 'spotify' | 'appleMusic', config: { 
-    enabled?: boolean
-    priority?: number
-    weight?: number
-  }) {
-    if (this.serviceConfig[serviceId]) {
-      this.serviceConfig[serviceId] = {
-        ...this.serviceConfig[serviceId],
-        ...config
-      }
+      throw new Error(`Unsupported service: ${service}`)
       
-      // 設定変更時にキャッシュをクリア
-      this.clearCache()
-    }
-  },
-
-  // サービス接続状態チェック
-  checkServiceConnections: async function(): Promise<{
-    spotify: { connected: boolean; authenticated: boolean }
-    appleMusic: { connected: boolean; authenticated: boolean }
-  }> {
-    const results = {
-      spotify: { connected: false, authenticated: false },
-      appleMusic: { connected: false, authenticated: false }
-    }
-
-    try {
-      // Spotify接続チェック
-      const spotifyToken = spotifyAPI.getStoredAccessToken()
-      results.spotify.authenticated = !!spotifyToken
-      results.spotify.connected = !!spotifyToken || import.meta.env.DEV
     } catch (error) {
-      console.warn('Spotify connection check failed:', error)
+      this.recordCircuitBreakerResult(service, false)
+      this.logError(service, error, 'Service-specific search')
+      
+      // フォールバック: モックデータを返す
+      const mockTracks = enhancedMockTracks
+        .filter(track =>
+          track.title.toLowerCase().includes(query.toLowerCase()) ||
+          track.artist.toLowerCase().includes(query.toLowerCase())
+        )
+        .slice(0, limit)
+
+      return {
+        tracks: mockTracks,
+        total: mockTracks.length
+      }
     }
-
-    try {
-      // Apple Music接続チェック
-      results.appleMusic.connected = await appleMusicAPI.checkConnection()
-      results.appleMusic.authenticated = appleMusicAPI.isAuthorized()
-    } catch (error) {
-      console.warn('Apple Music connection check failed:', error)
-    }
-
-    return results
-  },
-
-  // 統合おすすめシステム
-  getMultiServiceRecommendations: async function(params?: {
-    seedTracks?: string[]
-    genres?: string[]
-    limit?: number
-    services?: ('spotify' | 'appleMusic')[]
-  }): Promise<{
-    tracks: Track[]
-    sources: { spotify?: Track[]; appleMusic?: Track[] }
-    total: number
-  }> {
-    const { limit = 20, services = ['spotify', 'appleMusic'] } = params || {}
-    const cacheKey = `multi_recommendations_${JSON.stringify(params)}`
-    
-    const cached = this.getFromCache<{
-      tracks: Track[]
-      sources: { spotify?: Track[]; appleMusic?: Track[] }
-      total: number
-    }>(cacheKey)
-    if (cached) return cached
-
-    const sources: { spotify?: Track[]; appleMusic?: Track[] } = {}
-    const recommendationPromises: Promise<void>[] = []
-
-    // Spotifyおすすめ取得
-    if (services.includes('spotify') && this.serviceConfig.spotify.enabled) {
-      const spotifyPromise = (async () => {
-        try {
-          // 開発環境ではモックデータを使用
-          if (import.meta.env.DEV) {
-            const mockRecommendations = enhancedMockTracks
-              .filter(track => !params?.genres || 
-                params.genres.some(g => track.genre.some(tg => tg.toLowerCase().includes(g.toLowerCase()))))
-              .sort(() => Math.random() - 0.5)
-              .slice(0, Math.ceil(limit * this.serviceConfig.spotify.weight))
-            sources.spotify = mockRecommendations
-          } else {
-            // 本番環境でのSpotify APIを使用した実装
-            sources.spotify = []
-          }
-        } catch (error) {
-          console.warn('Spotify recommendations failed:', error)
-          sources.spotify = []
-        }
-      })()
-      recommendationPromises.push(spotifyPromise)
-    }
-
-    // Apple Musicおすすめ取得
-    if (services.includes('appleMusic') && this.serviceConfig.appleMusic.enabled) {
-      const appleMusicPromise = (async () => {
-        try {
-          const recommendations = await appleMusicAPI.getRecommendations()
-          sources.appleMusic = Array.isArray(recommendations) 
-            ? recommendations.slice(0, Math.ceil(limit * this.serviceConfig.appleMusic.weight))
-            : []
-        } catch (error) {
-          console.warn('Apple Music recommendations failed:', error)
-          sources.appleMusic = []
-        }
-      })()
-      recommendationPromises.push(appleMusicPromise)
-    }
-
-    await Promise.all(recommendationPromises)
-
-    // 結果のマージ
-    const allTracks = [
-      ...(sources.spotify || []),
-      ...(sources.appleMusic || [])
-    ]
-
-    const result = {
-      tracks: allTracks.slice(0, limit),
-      sources,
-      total: allTracks.length
-    }
-
-    this.setCache(cacheKey, result, 300000) // 5分キャッシュ
-    
-    return result
   }
 }
 

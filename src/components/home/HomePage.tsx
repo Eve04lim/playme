@@ -1,8 +1,7 @@
 // src/components/home/HomePage.tsx
 import {
   Search, TrendingUp, Clock, Music, PlayCircle, Plus,
-  Shuffle, Heart, Star, Zap, Headphones, BarChart3,
-  Users, Calendar, Award, Target
+  Shuffle, Heart, Star, Zap, Headphones, Award
 } from 'lucide-react'
 import React, { useCallback, useEffect, useState } from 'react'
 import { useMyPageStore } from '../../stores/myPageStore'
@@ -11,7 +10,6 @@ import { musicApi } from '../../api/music'
 import { MusicCarousel } from '../ui/MusicCarousel'
 import { PlaybackHistoryManager } from '../../utils/playbackHistoryManager'
 import { PlaylistGenerator } from '../../utils/playlistGenerator'
-import { RecommendationEngine } from '../../utils/recommendationEngine'
 import type { Track } from '../../types'
 
 interface HomePageProps {
@@ -59,7 +57,6 @@ export const HomePage: React.FC<HomePageProps> = ({
   const [stats, setStats] = useState<StatCard[]>([])
   const [historyManager] = useState(() => new PlaybackHistoryManager())
   const [playlistGenerator, setPlaylistGenerator] = useState<PlaylistGenerator | null>(null)
-  const [recommendationEngine, setRecommendationEngine] = useState<RecommendationEngine | null>(null)
 
   // データ初期化
   useEffect(() => {
@@ -110,10 +107,10 @@ export const HomePage: React.FC<HomePageProps> = ({
     }
 
     initializeHomePage()
-  }, [historyManager])
+  }, [historyManager, generateStats])
 
   // 統計情報生成
-  const generateStats = (generator: PlaylistGenerator, history: PlaybackHistoryManager) => {
+  const generateStats = useCallback((generator: PlaylistGenerator, history: PlaybackHistoryManager) => {
     try {
       const playlistStats = generator.getStats()
       const historyStats = history.getStats()
@@ -158,7 +155,7 @@ export const HomePage: React.FC<HomePageProps> = ({
       console.error('Failed to generate stats:', error)
       setStats([])
     }
-  }
+  }, [])
 
   // 時間フォーマット
   const formatDuration = (ms: number) => {
@@ -387,7 +384,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
               {/* 1行目 */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-                {recentTracks.slice(0, 4).map((track, index) => (
+                {recentTracks.slice(0, 4).map((track) => (
                   <div
                     key={track.id}
                     className="group relative aspect-square rounded-lg overflow-hidden cursor-pointer hover:scale-105 transition-transform"
@@ -412,7 +409,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               
               {/* 2行目 */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-                {recentTracks.slice(4, 8).map((track, index) => (
+                {recentTracks.slice(4, 8).map((track) => (
                   <div
                     key={track.id}
                     className="group relative aspect-square rounded-lg overflow-hidden cursor-pointer hover:scale-105 transition-transform"

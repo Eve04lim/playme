@@ -1,8 +1,8 @@
 // src/components/history/PlaybackStats.tsx
 import {
-  BarChart3, PieChart, TrendingUp, Clock, Target, Award,
-  Calendar, Headphones, Music, Heart, Trophy, Star,
-  Zap, Volume2, Users, PlayCircle
+  BarChart3, TrendingUp, Clock, Target,
+  Calendar, Music, Heart, Trophy, Star,
+  Users, PlayCircle
 } from 'lucide-react'
 import React, { useMemo, useState } from 'react'
 import { useMyPageStore } from '../../stores/myPageStore'
@@ -283,7 +283,7 @@ export const PlaybackStats: React.FC<PlaybackStatsProps> = ({
               ].map(({ id, label, icon: Icon }) => (
                 <button
                   key={id}
-                  onClick={() => setActiveChart(id as any)}
+                  onClick={() => setActiveChart(id as 'genres' | 'artists' | 'timeDistribution')}
                   className={`px-3 py-2 rounded-md transition-colors flex items-center space-x-1 ${
                     activeChart === id 
                       ? 'text-white' 

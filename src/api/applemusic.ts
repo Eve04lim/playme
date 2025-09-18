@@ -291,7 +291,7 @@ class AppleMusicAPI {
 
     try {
       const response = await this.musicKitInstance.api.song(trackId)
-      return response.data[0]
+      return response.data?.[0] ?? null
     } catch (error) {
       console.error('Failed to get Apple Music track:', error)
       throw new Error(`Failed to get track: ${error}`)
@@ -514,16 +514,17 @@ class AppleMusicAPI {
 
   // 楽曲情報を内部形式に変換
   convertToInternalFormat(appleMusicTrack: AppleMusicTrack): import('../types').Track {
+    const attrs = appleMusicTrack?.attributes ?? {};
     return {
-      id: appleMusicTrack.id,
-      appleMusicId: appleMusicTrack.id,
-      title: appleMusicTrack.attributes.name,
-      artist: appleMusicTrack.attributes.artistName,
-      album: appleMusicTrack.attributes.albumName,
-      duration: appleMusicTrack.attributes.durationInMillis,
-      artworkUrl: appleMusicTrack.attributes.artwork?.url.replace('{w}x{h}', '300x300'),
-      previewUrl: appleMusicTrack.attributes.previews?.[0]?.url,
-      externalUrl: appleMusicTrack.attributes.url,
+      id: appleMusicTrack?.id ?? "",
+      appleMusicId: appleMusicTrack?.id ?? "",
+      title: attrs.name ?? "",
+      artist: attrs.artistName ?? "",
+      album: attrs.albumName ?? "",
+      duration: attrs.durationInMillis ?? 0,
+      artworkUrl: attrs.artwork?.url?.replace('{w}x{h}', '300x300') ?? "",
+      previewUrl: attrs.previews?.[0]?.url ?? "",
+      externalUrl: attrs.url ?? "",
       createdAt: new Date().toISOString()
     }
   }
@@ -550,7 +551,7 @@ class AppleMusicAPI {
           },
           url: `https://music.apple.com/jp/song/mock-${i}`,
           releaseDate: `2024-${String((i % 12) + 1).padStart(2, '0')}-01`,
-          genreNames: [genre]
+          genreNames: [genre ?? ""]
         }
       })
     }

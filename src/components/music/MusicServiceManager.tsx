@@ -178,19 +178,43 @@ export const MusicServiceManager: React.FC<MusicServiceManagerProps> = ({
       // Spotify検索
       if ((activeService === 'spotify' || activeService === 'both') && services.spotify.connected) {
         promises.push(
-          spotifyAPI.searchTracks({ query, type: 'track', limit: 20 })
-            .then(response => response.tracks.items.map(item => ({
-              id: item.id,
-              spotifyId: item.id,
-              title: item.name,
-              artist: item.artists.map(a => a.name).join(', '),
-              album: item.album.name,
-              duration: item.duration_ms,
-              artworkUrl: item.album.images[0]?.url,
-              previewUrl: item.preview_url || undefined,
-              externalUrl: item.external_urls.spotify
-            })))
-            .catch(() => [])
+          (async () => {
+            try {
+              const { getValidSpotifyToken } = useAuthStore.getState()
+              const accessToken = await getValidSpotifyToken()
+              
+              // Get user's market for better search results
+              let market: string | undefined
+              try {
+                const userProfile = await spotifyAPI.getCurrentUser(accessToken)
+                market = userProfile.country || undefined
+              } catch (error) {
+                console.warn('Could not get user country for market parameter:', error)
+              }
+              
+              const response = await spotifyAPI.searchTracks({ 
+                query, 
+                type: 'track', 
+                limit: 20,
+                market 
+              }, accessToken)
+              
+              return response.tracks.items.map(item => ({
+                id: item.id,
+                spotifyId: item.id,
+                title: item.name,
+                artist: item.artists.map(a => a.name).join(', '),
+                album: item.album.name,
+                duration: item.duration_ms,
+                artworkUrl: item.album.images[0]?.url,
+                previewUrl: item.preview_url || undefined,
+                externalUrl: item.external_urls.spotify
+              }))
+            } catch (error) {
+              console.error('Spotify search failed in MusicServiceManager:', error)
+              return []
+            }
+          })()
         )
       } else {
         promises.push(Promise.resolve([]))

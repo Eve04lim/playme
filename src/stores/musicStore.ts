@@ -107,7 +107,7 @@ const mockCreatePlaylistApi = async (data: CreatePlaylistRequest): Promise<Playl
         id: Date.now().toString(),
         userId: 'current-user-id',
         name: data.name,
-        description: data.description,
+        description: data.description ?? "",
         isPublic: data.isPublic || false,
         tracks: [],
         trackCount: 0,

@@ -1,8 +1,8 @@
 // src/components/home/QuickActionsSection.tsx
 import {
-  Shuffle, Plus, Star, Zap, Music, Headphones, Heart,
-  Clock, TrendingUp, Users, PlayCircle, ListPlus,
-  Search, BarChart3, Award, Target
+  Shuffle, Plus, Star, Zap, Music, Heart,
+  Clock, TrendingUp, Users, PlayCircle,
+  BarChart3, Target
 } from 'lucide-react'
 import React from 'react'
 import { useMyPageStore } from '../../stores/myPageStore'
@@ -139,7 +139,7 @@ export const QuickActionsSection: React.FC<QuickActionsSectionProps> = ({
 
         {/* アクションカードグリッド */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-          {quickActions.map((action, index) => (
+          {quickActions.map((action) => (
             <div
               key={action.id}
               onClick={action.action}

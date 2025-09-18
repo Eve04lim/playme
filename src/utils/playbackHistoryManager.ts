@@ -128,17 +128,28 @@ export class PlaybackHistoryManager {
         const data = JSON.parse(stored)
         
         // 日付オブジェクトを復元
-        Object.entries(data).forEach(([trackId, entry]: [string, any]) => {
+        Object.entries(data).forEach(([trackId, entry]: [string, unknown]) => {
+          const entryData = entry as Omit<PlaybackHistoryEntry, 'lastPlayedAt' | 'firstPlayedAt' | 'sessionData'> & {
+            lastPlayedAt: string
+            firstPlayedAt: string
+            sessionData: unknown[]
+          }
           const restoredEntry: PlaybackHistoryEntry = {
-            ...entry,
-            lastPlayedAt: new Date(entry.lastPlayedAt),
-            firstPlayedAt: new Date(entry.firstPlayedAt),
+            ...entryData,
+            lastPlayedAt: new Date(entryData.lastPlayedAt),
+            firstPlayedAt: new Date(entryData.firstPlayedAt),
             likedAt: entry.likedAt ? new Date(entry.likedAt) : undefined,
-            sessionData: entry.sessionData.map((session: any) => ({
-              ...session,
-              startTime: new Date(session.startTime),
-              endTime: new Date(session.endTime)
-            }))
+            sessionData: entryData.sessionData.map((session: unknown) => {
+              const sessionData = session as Omit<PlaybackSession, 'startTime' | 'endTime'> & {
+                startTime: string
+                endTime: string
+              }
+              return {
+                ...sessionData,
+                startTime: new Date(sessionData.startTime),
+                endTime: new Date(sessionData.endTime)
+              }
+            })
           }
           this.historyMap.set(trackId, restoredEntry)
         })
@@ -369,7 +380,7 @@ export class PlaybackHistoryManager {
 
         // ジャンルフィルター
         if (filter.genres && filter.genres.length > 0) {
-          const trackGenres = (entry.trackData as any).genre || []
+          const trackGenres = (entry.trackData as { genre?: string[] }).genre ?? []
           if (!filter.genres.some(g => trackGenres.includes(g))) {
             return false
           }
@@ -445,7 +456,7 @@ export class PlaybackHistoryManager {
     // ジャンル集計
     const genreCount = new Map<string, number>()
     entries.forEach(entry => {
-      const genres = (entry.trackData as any).genre || [entry.trackData.album || 'Unknown']
+      const genres = (entry.trackData as { genre?: string[] }).genre ?? [entry.trackData.album ?? 'Unknown']
       genres.forEach((genre: string) => {
         genreCount.set(genre, (genreCount.get(genre) || 0) + entry.playCount)
       })
@@ -600,8 +611,7 @@ export class PlaybackHistoryManager {
     let tempStreak = 0
     let streakStartDate: Date | undefined
 
-    const today = new Date().toDateString()
-    let checkDate = new Date()
+    const checkDate = new Date()
     
     // 現在の連続日数を計算
     for (let i = 0; i < 30; i++) { // 30日まで遡って確認
